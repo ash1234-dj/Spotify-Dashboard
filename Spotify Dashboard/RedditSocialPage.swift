@@ -190,7 +190,7 @@ struct RedditSocialPage: View {
                                         .font(.title2)
                                         .foregroundColor(.green)
                                     
-                                    Text("Reddit Music")
+                                    Text("Trending Music News ")
                                         .font(.largeTitle)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)

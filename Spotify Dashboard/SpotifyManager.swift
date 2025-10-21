@@ -143,41 +143,82 @@ enum Language: String, CaseIterable, Codable {
     var trendingQueries: [String] {
         switch self {
         case .english:
-            return ["trending", "viral", "top hits", "popular", "billboard hot 100", "charts"]
+            return ["english hits", "top hits usa", "billboard hot 100", "today's top hits", "new music friday", "viral usa"]
         case .hindi:
-            return ["bollywood", "hindi hits", "trending indian", "desi pop", "indian music", "new hindi songs"]
+            return ["हिंदी गाने", "बॉलीवुड", "नए हिंदी गाने", "ट्रेंडिंग हिंदी", "देसी पॉप"]
         case .tamil:
-            return ["tamil songs", "kollywood", "tamil hits", "tamil music", "new tamil songs", "rajinikanth songs"]
+            return ["தமிழ் பாடல்கள்", "கோலிவுட்", "புதிய தமிழ் பாடல்கள்", "டிரென்டிங் தமிழ்", "தமிழ் ஹிட்ஸ்"]
         case .telugu:
-            return ["telugu songs", "tollywood", "telugu hits", "telugu music", "new telugu songs", "vijay devarakonda"]
+            return ["తెలుగు పాటలు", "టాలీవుడ్", "కొత్త తెలుగు పాటలు", "ట్రెండింగ్ తెలుగు", "తెలుగు హిట్స్"]
         case .kannada:
-            return ["kannada songs", "sandalwood", "kannada hits", "kannada music", "new kannada songs", "punith raj"]
+            return ["ಕನ್ನಡ ಹಾಡುಗಳು", "ಸ್ಯಾಂಡಲ್ವುಡ್", "ಹೊಸ ಕನ್ನಡ ಹಾಡುಗಳು", "ಟ್ರೆಂಡಿಂಗ್ ಕನ್ನಡ", "ಕನ್ನಡ ಹಿಟ್ಸ್"]
         case .malayalam:
-            return ["malayalam songs", "mollywood", "malayalam hits", "malayalam music", "new malayalam songs", "mammootty"]
+            return ["മലയാളം പാട്ടുകൾ", "മോളിവുഡ്", "പുതിയ മലയാളം പാട്ടുകൾ", "ട്രെൻഡിംഗ് മലയാളം", "മലയാളം ഹിറ്റ്സ്"]
         case .bengali:
-            return ["bengali songs", "bollywood bengali", "bengali hits", "bengali music", "new bengali songs", "tollygunge"]
+            return ["বাংলা গান", "ট্রেন্ডিং বাংলা", "নতুন বাংলা গান", "বাংলা হিটস"]
         case .marathi:
-            return ["marathi songs", "marathi hits", "marathi music", "new marathi songs", "marathi bhavgeet"]
+            return ["मराठी गाणी", "ट्रेंडिंग मराठी", "नवीन मराठी गाणी", "मराठी हिट्स"]
         case .gujarati:
-            return ["gujarati songs", "gujarati hits", "gujarati music", "new gujarati songs", "gujarati folk"]
+            return ["ગુજરાતી ગીત", "ટ્રેન્ડિંગ ગુજરાતી", "નવા ગુજરાતી ગીત", "ગુજરાતી હિટ્સ"]
         case .punjabi:
-            return ["punjabi songs", "bhangra", "punjabi hits", "punjabi pop", "sidhu moosewala", "punjabi music"]
+            return ["ਪੰਜਾਬੀ ਗਾਣੇ", "ਭਾਂਗੜਾ", "ਨਵੇਂ ਪੰਜਾਬੀ ਗਾਣੇ", "ਟ੍ਰੈਂਡਿੰਗ ਪੰਜਾਬੀ", "ਪੰਜਾਬੀ ਹਿੱਟਸ"]
         case .spanish:
-            return ["música latina", "regueton", "flamenco", "spanish hits", "latino", "latinoamericano"]
+            return ["éxitos españa", "música latina", "reggaetón", "top españa", "novedades viernes"]
         case .french:
-            return ["chanson française", "french pop", "rap français", "french hits", "francophone"]
+            return ["chanson française", "rap français", "hits france", "nouveautés", "top france"]
         case .german:
-            return ["deutschrap", "german rock", "schlager", "german hits", "austrian pop"]
+            return ["deutschrap", "german hits", "schlager", "top deutschland", "neuheiten"]
         case .italian:
-            return ["italiano", "canta italiano", "opera", "trap italiano", "italian pop"]
+            return ["hit italiani", "trap italiano", "nuove uscite", "top italia", "italian pop"]
         case .portuguese:
-            return ["funk brasileiro", "sertanejo", "mpb", "bossa nova", "brazilian hits"]
+            return ["hits brasil", "funk brasileiro", "sertanejo", "mpb", "bossa nova"]
         case .korean:
-            return ["k-pop", "k-pop hits", "bts", "blackpink", "twice", "korean pop"]
+            return ["케이팝", "K-pop", "인기 한국 노래", "한국 가요", "최신 한국 노래"]
         case .japanese:
-            return ["j-pop", "anime music", "japanese pop", "city pop", "japanese indie"]
+            return ["J-POP", "邦楽", "アニメソング", "日本のポップ", "最新 日本の歌"]
         case .chinese:
-            return ["c-pop", "mandarin pop", "cantonese pop", "taiwan pop", "hong kong music"]
+            return ["华语 流行", "国语 歌曲", "粤语 歌曲", "华语 热门", "华语 新歌"]
+        }
+    }
+    
+    var seedArtists: [String] {
+        switch self {
+        case .english:
+            return ["Taylor Swift", "Drake", "The Weeknd", "Ed Sheeran", "Billie Eilish"]
+        case .hindi:
+            return ["Arijit Singh", "Badshah", "Shreya Ghoshal", "Neha Kakkar", "Jubin Nautiyal"]
+        case .tamil:
+            return ["Anirudh Ravichander", "A. R. Rahman", "Sid Sriram", "Yuvan Shankar Raja", "Dhanush"]
+        case .telugu:
+            return ["Devi Sri Prasad", "Thaman S", "Sid Sriram", "Anirudh Ravichander", "Armaan Malik"]
+        case .kannada:
+            return ["Arjun Janya", "Vijay Prakash", "Charan Raj", "Anirudh Shastry", "Vasuki Vaibhav"]
+        case .malayalam:
+            return ["Vineeth Sreenivasan", "Sushin Shyam", "Sithara Krishnakumar", "KS Harisankar", "Shreya Ghoshal"]
+        case .bengali:
+            return ["Arijit Singh", "Shreya Ghoshal", "Anupam Roy", "Ishan Mitra", "Lagnajita Chakraborty"]
+        case .marathi:
+            return ["Ajay-Atul", "Shankar Mahadevan", "Avadhoot Gupte", "Sonu Nigam", "Shreya Ghoshal"]
+        case .gujarati:
+            return ["Sachin-Jigar", "Aishwarya Majmudar", "Kinjal Dave", "Jigardan Gadhavi", "Kirtidan Gadhvi"]
+        case .punjabi:
+            return ["Sidhu Moose Wala", "AP Dhillon", "Diljit Dosanjh", "Karan Aujla", "Shubh"]
+        case .spanish:
+            return ["Bad Bunny", "Rosalía", "Quevedo", "Karol G", "J Balvin"]
+        case .french:
+            return ["Aya Nakamura", "PNL", "Stromae", "GIMS", "Ninho"]
+        case .german:
+            return ["Apache 207", "RAF Camora", "Capital Bra", "Bonez MC", "Loredana"]
+        case .italian:
+            return ["Sfera Ebbasta", "Måneskin", "Ultimo", "Lazza", "Mahmood"]
+        case .portuguese:
+            return ["Anitta", "Pedro Sampaio", "Gusttavo Lima", "Luan Santana", "Jão"]
+        case .korean:
+            return ["BTS", "BLACKPINK", "SEVENTEEN", "NewJeans", "IVE"]
+        case .japanese:
+            return ["YOASOBI", "Official HIGE DANDism", "Ado", "King Gnu", "LiSA"]
+        case .chinese:
+            return ["Jay Chou", "JJ Lin", "Eason Chan", "G.E.M.", "Mayday"]
         }
     }
 }
@@ -220,6 +261,32 @@ class SpotifyManager: ObservableObject {
     
     deinit {
         updateTimer?.invalidate()
+    }
+    
+    // Map UI language selection to a Spotify market code to bias results
+    private func marketForLanguage(_ language: Language) -> String {
+        switch language {
+        case .english:
+            return "US"
+        case .hindi, .tamil, .telugu, .kannada, .malayalam, .bengali, .marathi, .gujarati, .punjabi:
+            return "IN"
+        case .spanish:
+            return "ES"
+        case .french:
+            return "FR"
+        case .german:
+            return "DE"
+        case .italian:
+            return "IT"
+        case .portuguese:
+            return "BR"
+        case .korean:
+            return "KR"
+        case .japanese:
+            return "JP"
+        case .chinese:
+            return "TW" // Spotify not available in mainland China; TW/HK are common
+        }
     }
     
     // MARK: - Auto Update Methods
@@ -333,15 +400,98 @@ class SpotifyManager: ObservableObject {
         
         print("🎵 Fetching \(language.displayName) trending tracks from Spotify API...")
         
+        let market = marketForLanguage(language)
         // Get trending tracks from language-specific queries
         let trendingQueries = language.trendingQueries
         var tracks: [Track] = []
-        
+        var seen = Set<String>()
+
         for query in trendingQueries {
-            if let searchedTracks = await searchTracks(query: query) {
-                tracks.append(contentsOf: searchedTracks.prefix(5)) // Add 5 tracks from each search
+            if let searchedTracks = await searchTracks(query: query, market: market, recentYears: true) {
+                for t in searchedTracks {
+                    if !seen.contains(t.id) {
+                        seen.insert(t.id)
+                        tracks.append(t)
+                    }
+                }
             }
         }
+
+        // Strict match for non-Latin languages, with top-up from seed artists; never fall back to unfiltered
+        func matchesLanguage(_ t: Track, for lang: Language) -> Bool {
+            func matchPattern(_ text: String, _ pattern: String) -> Bool {
+                return text.range(of: pattern, options: .regularExpression) != nil
+            }
+            switch lang {
+            case .english, .spanish, .french, .german, .italian, .portuguese:
+                return true // rely on market for these
+            case .hindi, .marathi:
+                let p = "[\\u{0900}-\\u{097F}]" // Devanagari
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .bengali:
+                let p = "[\\u{0980}-\\u{09FF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .tamil:
+                let p = "[\\u{0B80}-\\u{0BFF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .telugu:
+                let p = "[\\u{0C00}-\\u{0C7F}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .kannada:
+                let p = "[\\u{0C80}-\\u{0CFF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .malayalam:
+                let p = "[\\u{0D00}-\\u{0D7F}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .gujarati:
+                let p = "[\\u{0A80}-\\u{0AFF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .punjabi:
+                let p = "[\\u{0A00}-\\u{0A7F}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .korean:
+                let p = "[\\u{1100}-\\u{11FF}\\u{3130}-\\u{318F}\\u{AC00}-\\u{D7AF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .japanese:
+                let p = "[\\u{3040}-\\u{309F}\\u{30A0}-\\u{30FF}\\u{4E00}-\\u{9FFF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            case .chinese:
+                let p = "[\\u{4E00}-\\u{9FFF}]"
+                return matchPattern(t.name, p) || matchPattern(t.album.name, p) || t.artists.contains { matchPattern($0.name, p) }
+            }
+        }
+
+        let deduped = tracks
+
+        // Start with strictly matching items or tracks by seed artists for the language
+        let seedSet = Set(language.seedArtists.map { $0.lowercased() })
+        func hasSeedArtist(_ t: Track) -> Bool { t.artists.contains { seedSet.contains($0.name.lowercased()) } }
+
+        var strict: [Track] = deduped.filter { matchesLanguage($0, for: language) || hasSeedArtist($0) }
+
+        // Top-up from seed artists until we reach up to 20 items (still constrained by language/seed)
+        if strict.count < 20 {
+            for name in language.seedArtists {
+                if let more = await searchTracks(query: "artist:\(name)", market: market, recentYears: true) {
+                    for t in more {
+                        if !seen.contains(t.id) {
+                            seen.insert(t.id)
+                            if matchesLanguage(t, for: language) || hasSeedArtist(t) {
+                                strict.append(t)
+                                if strict.count >= 20 { break }
+                            }
+                        }
+                    }
+                }
+                if strict.count >= 20 { break }
+            }
+        }
+
+        // Use the strict list only (no fallback to unfiltered results)
+        tracks = strict
+
+        // Sort by popularity (desc) and cap to 20
+        tracks.sort { ( ($0.popularity ?? 0) > ($1.popularity ?? 0) ) }
         
         await MainActor.run {
             self.trendingTracks = Array(tracks.prefix(20)) // Limit to 20 tracks
@@ -376,7 +526,8 @@ class SpotifyManager: ObservableObject {
         
         do {
             let searchQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-            let urlString = "https://api.spotify.com/v1/search?q=\(searchQuery)&type=artist,track&limit=20"
+            let market = marketForLanguage(self.selectedLanguage)
+            let urlString = "https://api.spotify.com/v1/search?q=\(searchQuery)&type=artist,track&limit=20&market=\(market)"
             
             guard let url = URL(string: urlString) else {
                 throw APIError.invalidURL
@@ -423,7 +574,8 @@ class SpotifyManager: ObservableObject {
     }
     
     private func searchArtist(artistName: String) async -> Artist? {
-        let searchURL = "https://api.spotify.com/v1/search?q=\(artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&type=artist&limit=1"
+        let market = marketForLanguage(self.selectedLanguage)
+        let searchURL = "https://api.spotify.com/v1/search?q=\(artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&type=artist&limit=1&market=\(market)"
         
         guard let url = URL(string: searchURL) else { return nil }
         
@@ -447,8 +599,13 @@ class SpotifyManager: ObservableObject {
         }
     }
     
-    private func searchTracks(query: String) async -> [Track]? {
-        let searchURL = "https://api.spotify.com/v1/search?q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&type=track&limit=10"
+    private func searchTracks(query: String, market: String, recentYears: Bool = false) async -> [Track]? {
+        let marketParam = market.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? market
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let yearFilter = recentYears ? " year:\(currentYear-2)-\(currentYear)" : ""
+        let rawQuery = query + yearFilter
+        let encodedQuery = rawQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let searchURL = "https://api.spotify.com/v1/search?q=\(encodedQuery)&type=track&limit=10&market=\(marketParam)"
         
         guard let url = URL(string: searchURL) else { return nil }
         
@@ -472,3 +629,4 @@ class SpotifyManager: ObservableObject {
         }
     }
 }
+

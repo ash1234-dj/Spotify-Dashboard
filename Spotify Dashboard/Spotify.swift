@@ -423,7 +423,7 @@ struct MainPage: View {
                 GlassCard(content: AnyView(
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Spotify Insights 📱")
+                            Text("Music Insights 📱")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
                                 .foregroundStyle(
@@ -507,6 +507,8 @@ struct MainPage: View {
                                             .font(.system(size: 14, weight: .medium))
                                         Text("Search")
                                             .font(.system(size: 14, weight: .medium))
+
+
                                     }
                                 }
                                 .foregroundColor(.black)
@@ -783,12 +785,9 @@ struct ArtistsPage: View {
             }
         }
         // Fallback to popularArtists if trendingTracks is empty
-        return unique.isEmpty ? spotifyManager.popularArtists : unique
+        return unique
     }
     
-    // Fallback image for artists derived from richer sources: prefer artist images from popularArtists,
-    // then album art where the artist is the SOLE contributor on the track,
-    // then album art where artist is primary, and finally any album art.
     var artistImageFallbacks: [String: String] {
         var map: [String: String] = [:]
         
@@ -821,6 +820,32 @@ struct ArtistsPage: View {
         }
         
         return map
+    }
+    // Top artists derived from current trending tracks (deduped, sorted by frequency then popularity)
+    var topTrendingArtists: [Artist] {
+        var counts: [String: Int] = [:]
+        var firstSeen: [String: Artist] = [:]
+        for track in spotifyManager.trendingTracks {
+            for artist in track.artists {
+                counts[artist.id, default: 0] += 1
+                if firstSeen[artist.id] == nil { firstSeen[artist.id] = artist }
+            }
+        }
+        // Prefer enriched artist objects (with images) when available
+        let enrichedById: [String: Artist] = Dictionary(uniqueKeysWithValues: spotifyManager.popularArtists.map { ($0.id, $0) })
+        var items: [(Artist, Int)] = []
+        for (id, count) in counts {
+            if let base = enrichedById[id] ?? firstSeen[id] {
+                items.append((base, count))
+            }
+        }
+        items.sort { lhs, rhs in
+            if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
+            let lp = lhs.0.popularity ?? 0
+            let rp = rhs.0.popularity ?? 0
+            return lp > rp
+        }
+        return items.map { $0.0 }
     }
     
     var filteredArtistsPage: [Artist] {
@@ -1166,7 +1191,15 @@ struct ArtistsPage: View {
                                             .fill(Color.white.opacity(0.1))
                                     )
                             }
-                            
+                            // Quick chips: top artists from current trending tracks (hidden while searching)
+                            if artistSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && searchResults == nil {
+                                TrendingArtistsChips(
+                                    artists: topTrendingArtists,
+                                    imageURLFor: { artist in
+                                        artistThumbnails[artist.id] ?? artist.images?.first?.url ?? artistImageFallbacks[artist.id]
+                                    }
+                                )
+                            }
                             LazyVStack(spacing: 12) {
                                 ForEach(spotifyManager.trendingTracks.prefix(8), id: \.id) { track in
                                     TrendingTrackRow(track: track)
@@ -1247,13 +1280,11 @@ struct ArtistsPage: View {
         .onChange(of: spotifyManager.selectedLanguage) { newLanguage in
             currentLanguage = newLanguage
             Task {
-                // When language changes (used by Trending Tracks), also refresh Popular Artists
-                // so the Artists grid updates to the selected language.
+                // When language changes, refresh trending tracks immediately
                 isRefreshing = true
-                // Reset local search state so the grid reflects fresh language-specific data
                 searchResults = nil
                 artistSearchText = ""
-                await spotifyManager.getPopularArtists()
+                await spotifyManager.updateTrendingTracksForLanguage(newLanguage)
                 await fetchArtistThumbnailsIfNeeded(for: languageDrivenArtists)
                 isRefreshing = false
             }
@@ -1659,6 +1690,63 @@ struct TrendingTrackRow: View {
                 UIApplication.shared.open(spotifyUrl)
             }
         }
+    }
+}
+
+// MARK: - Trending Artists Chips
+struct TrendingArtistsChips: View {
+    let artists: [Artist]
+    let imageURLFor: (Artist) -> String?
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(artists.prefix(12), id: \.id) { artist in
+                    ArtistChip(artist: artist, imageURL: imageURLFor(artist))
+                        .onTapGesture {
+                            if let url = URL(string: "https://open.spotify.com/artist/\(artist.id)") {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+}
+
+struct ArtistChip: View {
+    let artist: Artist
+    let imageURL: String?
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            AsyncImage(url: URL(string: imageURL ?? "")) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Circle()
+                    .fill(Color.white.opacity(0.08))
+                    .overlay(Image(systemName: "person.fill").foregroundColor(.gray))
+            }
+            .frame(width: 24, height: 24)
+            .clipShape(Circle())
+            
+            Text(artist.name)
+                .font(.caption)
+                .foregroundColor(.white)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule().fill(Color.white.opacity(0.06))
+        )
+        .overlay(
+            Capsule().stroke(
+                LinearGradient(colors: [Color.green.opacity(0.6), Color.cyan.opacity(0.6)], startPoint: .leading, endPoint: .trailing),
+                lineWidth: 1
+            )
+        )
     }
 }
 
