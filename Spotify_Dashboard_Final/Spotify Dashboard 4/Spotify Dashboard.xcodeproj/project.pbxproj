@@ -12,64 +12,14 @@
 		44161C892E48894F00B741BC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 44161C882E48894F00B741BC /* FirebaseFirestore */; };
 		44161C8B2E48894F00B741BC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 44161C8A2E48894F00B741BC /* FirebaseFunctions */; };
 		44161C8D2E48894F00B741BC /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 44161C8C2E48894F00B741BC /* FirebaseStorage */; };
-		4427E6342EAE8AB600B8C6F8 /* PodcastView 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4427E6332EAE8AB600B8C6F8 /* PodcastView 2.swift */; };
-		4427E6352EAE8AB600B8C6F8 /* PodcastManager 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4427E6322EAE8AB600B8C6F8 /* PodcastManager 2.swift */; };
-		4427E6372EAE8B3100B8C6F8 /* AudioPlayer 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4427E6362EAE8B3100B8C6F8 /* AudioPlayer 2.swift */; };
-		449A50272EAD4117008BB1AA /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 449A50262EAD4117008BB1AA /* GoogleSignIn */; };
-		449A50292EAD4117008BB1AA /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 449A50282EAD4117008BB1AA /* GoogleSignInSwift */; };
-		44AAB73C2EADE22B0019F7D1 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 44AAB7262EADE22B0019F7D1 /* GoogleService-Info.plist */; };
-		44AAB73D2EADE22B0019F7D1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44AAB7212EADE22B0019F7D1 /* Assets.xcassets */; };
-		44AAB73F2EADE22B0019F7D1 /* MainAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7292EADE22B0019F7D1 /* MainAppView.swift */; };
-		44AAB7402EADE22B0019F7D1 /* FirebaseSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7242EADE22B0019F7D1 /* FirebaseSyncManager.swift */; };
-		44AAB7412EADE22B0019F7D1 /* MoodDiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72B2EADE22B0019F7D1 /* MoodDiaryView.swift */; };
-		44AAB7422EADE22B0019F7D1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72F2EADE22B0019F7D1 /* SettingsView.swift */; };
-		44AAB7432EADE22B0019F7D1 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7302EADE22B0019F7D1 /* SignInView.swift */; };
-		44AAB7442EADE22B0019F7D1 /* MoodAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72A2EADE22B0019F7D1 /* MoodAnalyzer.swift */; };
-		44AAB7452EADE22B0019F7D1 /* SpotifyAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7342EADE22B0019F7D1 /* SpotifyAuthView.swift */; };
-		44AAB7462EADE22B0019F7D1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */; };
-		44AAB7472EADE22B0019F7D1 /* SpotifyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7352EADE22B0019F7D1 /* SpotifyManager.swift */; };
-		44AAB7482EADE22B0019F7D1 /* OpenLibraryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */; };
-		44AAB7492EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7332EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld */; };
-		44AAB74A2EADE22B0019F7D1 /* FoundationModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7252EADE22B0019F7D1 /* FoundationModelsManager.swift */; };
-		44AAB74B2EADE22B0019F7D1 /* ReadingSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */; };
-		44AAB74C2EADE22B0019F7D1 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7222EADE22B0019F7D1 /* AuthenticationManager.swift */; };
-		44AAB74D2EADE22B0019F7D1 /* StorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7372EADE22B0019F7D1 /* StorySelectionView.swift */; };
-		44AAB74E2EADE22B0019F7D1 /* GutendexManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7272EADE22B0019F7D1 /* GutendexManager.swift */; };
-		44AAB74F2EADE22B0019F7D1 /* AuthorDiscoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7232EADE22B0019F7D1 /* AuthorDiscoveryView.swift */; };
-		44AAB7502EADE22B0019F7D1 /* SpotifyPlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7362EADE22B0019F7D1 /* SpotifyPlaybackManager.swift */; };
-		44C000012E5A0000000000001 /* SpotifyDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C000012E5A0000000000000 /* SpotifyDashboardApp.swift */; };
-		44C000022E5A0000000000001 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C000022E5A0000000000000 /* Config.swift */; };
+		44161C962E488B0600B741BC /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44161C952E488AF900B741BC /* Config.swift */; };
+		44FE58962E45121B00155732 /* SpotifyDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44FE58952E45120500155732 /* SpotifyDashboardApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		44161C722E48797200B741BC /* Spotify Dashboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Spotify Dashboard.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4427E6322EAE8AB600B8C6F8 /* PodcastManager 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PodcastManager 2.swift"; sourceTree = "<group>"; };
-		4427E6332EAE8AB600B8C6F8 /* PodcastView 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PodcastView 2.swift"; sourceTree = "<group>"; };
-		4427E6362EAE8B3100B8C6F8 /* AudioPlayer 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayer 2.swift"; sourceTree = "<group>"; };
-		44AAB7212EADE22B0019F7D1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		44AAB7222EADE22B0019F7D1 /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
-		44AAB7232EADE22B0019F7D1 /* AuthorDiscoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorDiscoveryView.swift; sourceTree = "<group>"; };
-		44AAB7242EADE22B0019F7D1 /* FirebaseSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSyncManager.swift; sourceTree = "<group>"; };
-		44AAB7252EADE22B0019F7D1 /* FoundationModelsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelsManager.swift; sourceTree = "<group>"; };
-		44AAB7262EADE22B0019F7D1 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		44AAB7272EADE22B0019F7D1 /* GutendexManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GutendexManager.swift; sourceTree = "<group>"; };
-		44AAB7292EADE22B0019F7D1 /* MainAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppView.swift; sourceTree = "<group>"; };
-		44AAB72A2EADE22B0019F7D1 /* MoodAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodAnalyzer.swift; sourceTree = "<group>"; };
-		44AAB72B2EADE22B0019F7D1 /* MoodDiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodDiaryView.swift; sourceTree = "<group>"; };
-		44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenLibraryManager.swift; sourceTree = "<group>"; };
-		44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSessionView.swift; sourceTree = "<group>"; };
-		44AAB72F2EADE22B0019F7D1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		44AAB7302EADE22B0019F7D1 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
-		44AAB7312EADE22B0019F7D1 /* Spotify Dashboard.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "Spotify Dashboard.xcodeproj"; sourceTree = "<group>"; };
-		44AAB7322EADE22B0019F7D1 /* Spotify_Dashboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Spotify_Dashboard.entitlements; sourceTree = "<group>"; };
-		44AAB7342EADE22B0019F7D1 /* SpotifyAuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAuthView.swift; sourceTree = "<group>"; };
-		44AAB7352EADE22B0019F7D1 /* SpotifyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyManager.swift; sourceTree = "<group>"; };
-		44AAB7362EADE22B0019F7D1 /* SpotifyPlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyPlaybackManager.swift; sourceTree = "<group>"; };
-		44AAB7372EADE22B0019F7D1 /* StorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorySelectionView.swift; sourceTree = "<group>"; };
-		44AAB73B2EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Spotify_Dashboard.xcdatamodel; sourceTree = "<group>"; };
-		44C000012E5A0000000000000 /* SpotifyDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyDashboardApp.swift; sourceTree = "<group>"; };
-		44C000022E5A0000000000000 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		44161C952E488AF900B741BC /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		44FE58952E45120500155732 /* SpotifyDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyDashboardApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,11 +29,9 @@
 			files = (
 				44161C852E48894F00B741BC /* FirebaseAnalytics in Frameworks */,
 				44161C872E48894F00B741BC /* FirebaseAuth in Frameworks */,
-				449A50292EAD4117008BB1AA /* GoogleSignInSwift in Frameworks */,
 				44161C892E48894F00B741BC /* FirebaseFirestore in Frameworks */,
 				44161C8D2E48894F00B741BC /* FirebaseStorage in Frameworks */,
 				44161C8B2E48894F00B741BC /* FirebaseFunctions in Frameworks */,
-				449A50272EAD4117008BB1AA /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,8 +41,9 @@
 		4406D9EE2E43A99D00904D98 = {
 			isa = PBXGroup;
 			children = (
-				44AAB7382EADE22B0019F7D1 /* Spotify Dashboard 4 */,
 				4406D9F82E43A99D00904D98 /* Products */,
+				44FE58952E45120500155732 /* SpotifyDashboardApp.swift */,
+				44161C952E488AF900B741BC /* Config.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -102,47 +51,6 @@
 			isa = PBXGroup;
 			children = (
 				44161C722E48797200B741BC /* Spotify Dashboard.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		44AAB7382EADE22B0019F7D1 /* Spotify Dashboard 4 */ = {
-			isa = PBXGroup;
-			children = (
-				4427E6362EAE8B3100B8C6F8 /* AudioPlayer 2.swift */,
-				4427E6322EAE8AB600B8C6F8 /* PodcastManager 2.swift */,
-				4427E6332EAE8AB600B8C6F8 /* PodcastView 2.swift */,
-				44C000012E5A0000000000000 /* SpotifyDashboardApp.swift */,
-				44C000022E5A0000000000000 /* Config.swift */,
-				44AAB7212EADE22B0019F7D1 /* Assets.xcassets */,
-				44AAB7222EADE22B0019F7D1 /* AuthenticationManager.swift */,
-				44AAB7232EADE22B0019F7D1 /* AuthorDiscoveryView.swift */,
-				44AAB7242EADE22B0019F7D1 /* FirebaseSyncManager.swift */,
-				44AAB7252EADE22B0019F7D1 /* FoundationModelsManager.swift */,
-				44AAB7262EADE22B0019F7D1 /* GoogleService-Info.plist */,
-				44AAB7272EADE22B0019F7D1 /* GutendexManager.swift */,
-				44AAB7292EADE22B0019F7D1 /* MainAppView.swift */,
-				44AAB72A2EADE22B0019F7D1 /* MoodAnalyzer.swift */,
-				44AAB72B2EADE22B0019F7D1 /* MoodDiaryView.swift */,
-				44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */,
-				44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */,
-				44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */,
-				44AAB72F2EADE22B0019F7D1 /* SettingsView.swift */,
-				44AAB7302EADE22B0019F7D1 /* SignInView.swift */,
-				44AAB7312EADE22B0019F7D1 /* Spotify Dashboard.xcodeproj */,
-				44AAB7322EADE22B0019F7D1 /* Spotify_Dashboard.entitlements */,
-				44AAB7332EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld */,
-				44AAB7342EADE22B0019F7D1 /* SpotifyAuthView.swift */,
-				44AAB7352EADE22B0019F7D1 /* SpotifyManager.swift */,
-				44AAB7362EADE22B0019F7D1 /* SpotifyPlaybackManager.swift */,
-				44AAB7372EADE22B0019F7D1 /* StorySelectionView.swift */,
-			);
-			path = "Spotify Dashboard 4";
-			sourceTree = "<group>";
-		};
-		44AAB7392EADE22B0019F7D1 /* Products */ = {
-			isa = PBXGroup;
-			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -169,8 +77,6 @@
 				44161C882E48894F00B741BC /* FirebaseFirestore */,
 				44161C8A2E48894F00B741BC /* FirebaseFunctions */,
 				44161C8C2E48894F00B741BC /* FirebaseStorage */,
-				449A50262EAD4117008BB1AA /* GoogleSignIn */,
-				449A50282EAD4117008BB1AA /* GoogleSignInSwift */,
 			);
 			productName = "Spotify Dashboard";
 			productReference = 44161C722E48797200B741BC /* Spotify Dashboard.app */;
@@ -202,17 +108,10 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				44161C832E48894F00B741BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				449A50252EAD4117008BB1AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4406D9F82E43A99D00904D98 /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 44AAB7392EADE22B0019F7D1 /* Products */;
-					ProjectRef = 44AAB7312EADE22B0019F7D1 /* Spotify Dashboard.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				4406D9F62E43A99D00904D98 /* Spotify Dashboard */,
@@ -225,8 +124,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44AAB73C2EADE22B0019F7D1 /* GoogleService-Info.plist in Resources */,
-				44AAB73D2EADE22B0019F7D1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,29 +134,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				44AAB73F2EADE22B0019F7D1 /* MainAppView.swift in Sources */,
-				4427E6372EAE8B3100B8C6F8 /* AudioPlayer 2.swift in Sources */,
-				44AAB7402EADE22B0019F7D1 /* FirebaseSyncManager.swift in Sources */,
-				44AAB7412EADE22B0019F7D1 /* MoodDiaryView.swift in Sources */,
-				44AAB7422EADE22B0019F7D1 /* SettingsView.swift in Sources */,
-				44AAB7432EADE22B0019F7D1 /* SignInView.swift in Sources */,
-				44AAB7442EADE22B0019F7D1 /* MoodAnalyzer.swift in Sources */,
-				44AAB7452EADE22B0019F7D1 /* SpotifyAuthView.swift in Sources */,
-				44AAB7462EADE22B0019F7D1 /* OnboardingView.swift in Sources */,
-				44AAB7472EADE22B0019F7D1 /* SpotifyManager.swift in Sources */,
-				44AAB7482EADE22B0019F7D1 /* OpenLibraryManager.swift in Sources */,
-				44AAB7492EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld in Sources */,
-				44AAB74A2EADE22B0019F7D1 /* FoundationModelsManager.swift in Sources */,
-				44AAB74B2EADE22B0019F7D1 /* ReadingSessionView.swift in Sources */,
-				44AAB74C2EADE22B0019F7D1 /* AuthenticationManager.swift in Sources */,
-				44AAB74D2EADE22B0019F7D1 /* StorySelectionView.swift in Sources */,
-				4427E6342EAE8AB600B8C6F8 /* PodcastView 2.swift in Sources */,
-				4427E6352EAE8AB600B8C6F8 /* PodcastManager 2.swift in Sources */,
-				44AAB74E2EADE22B0019F7D1 /* GutendexManager.swift in Sources */,
-				44AAB74F2EADE22B0019F7D1 /* AuthorDiscoveryView.swift in Sources */,
-				44AAB7502EADE22B0019F7D1 /* SpotifyPlaybackManager.swift in Sources */,
-				44C000012E5A0000000000001 /* SpotifyDashboardApp.swift in Sources */,
-				44C000022E5A0000000000001 /* Config.swift in Sources */,
+				44FE58962E45121B00155732 /* SpotifyDashboardApp.swift in Sources */,
+				44161C962E488B0600B741BC /* Config.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,7 +147,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Spotify Dashboard 4/Spotify_Dashboard.entitlements";
+				CODE_SIGN_ENTITLEMENTS = Spotify_Dashboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HCXCZDAVY9;
@@ -279,9 +155,21 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_CFBundleDisplayName = BeatWise;
+				INFOPLIST_KEY_CFBundleURLTypes = (
+					{
+						"CFBundleTypeRole" = Editor;
+						"CFBundleURLName" = "spotify-dashboard";
+						"CFBundleURLSchemes" = (
+							"spotify-dashboard",
+						);
+					},
+				);
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = (
+					"remote-notification",
+				);
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -307,7 +195,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Spotify Dashboard 4/Spotify_Dashboard.entitlements";
+				CODE_SIGN_ENTITLEMENTS = Spotify_Dashboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HCXCZDAVY9;
@@ -315,9 +203,21 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_CFBundleDisplayName = BeatWise;
+				INFOPLIST_KEY_CFBundleURLTypes = (
+					{
+						"CFBundleTypeRole" = Editor;
+						"CFBundleURLName" = "spotify-dashboard";
+						"CFBundleURLSchemes" = (
+							"spotify-dashboard",
+						);
+					},
+				);
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = (
+					"remote-notification",
+				);
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -491,14 +391,6 @@
 				minimumVersion = 12.1.0;
 			};
 		};
-		449A50252EAD4117008BB1AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 9.0.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -527,30 +419,7 @@
 			package = 44161C832E48894F00B741BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
 		};
-		449A50262EAD4117008BB1AA /* GoogleSignIn */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 449A50252EAD4117008BB1AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignIn;
-		};
-		449A50282EAD4117008BB1AA /* GoogleSignInSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 449A50252EAD4117008BB1AA /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
-			productName = GoogleSignInSwift;
-		};
 /* End XCSwiftPackageProductDependency section */
-
-/* Begin XCVersionGroup section */
-		44AAB7332EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				44AAB73B2EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodel */,
-			);
-			currentVersion = 44AAB73B2EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodel */;
-			path = Spotify_Dashboard.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = 4406D9EF2E43A99D00904D98 /* Project object */;
 }
