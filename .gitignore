@@ -126,3 +126,6 @@ Temporary Items
 Spotify Dashboard*.zip
 Spotify_Dashboard*.zip
 
+# Markdown documentation files
+*.md
+
