@@ -201,7 +201,7 @@ Spotify Dashboard 4/
 ## 📊 Project Statistics
 
 - **Total Files**: 40+ Swift files
-- **Lines of Code**: ~10,000+
+- **Lines of Code**: ~5,000+
 - **Features**: 50+ unique capabilities
 - **API Integrations**: 5 external services
 - **Completion**: 95%
