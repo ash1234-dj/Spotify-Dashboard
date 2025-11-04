@@ -93,43 +93,123 @@ class SpotifyPlaybackManager: NSObject, ObservableObject {
         }
     }
 
-    // Play arbitrary audio URL (e.g., Jamendo stream)
+    // Play arbitrary audio URL (e.g., Jamendo stream) - Optimized with caching
+    private var audioCache: [String: Data] = [:]
+    
+    // Optimized URLSession for fast audio loading
+    private lazy var audioSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 8.0 // Faster timeout for audio
+        config.timeoutIntervalForResource = 12.0
+        config.waitsForConnectivity = false
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        config.urlCache = URLCache(memoryCapacity: 50 * 1024 * 1024, diskCapacity: 200 * 1024 * 1024, diskPath: nil) // 50MB memory, 200MB disk
+        return URLSession(configuration: config)
+    }()
+    
+    // Preload audio data to cache (called from background)
+    func preloadAudioToCache(urlString: String, data: Data) {
+        audioCache[urlString] = data
+        // Keep last 5 tracks cached (increased from 3)
+        if audioCache.count > 5 {
+            let firstKey = audioCache.keys.first!
+            audioCache.removeValue(forKey: firstKey)
+        }
+        print("📦 Preloaded to cache: \(urlString.components(separatedBy: "/").last ?? "")")
+    }
+    
     func playAudioURL(title: String, artist: String, urlString: String) {
         guard let url = URL(string: urlString) else {
             errorMessage = "Invalid audio URL"
             return
         }
-        isLoading = true
-        currentTrack = nil
-        currentTitle = "\(title) — \(artist)"
         
-        Task {
+        // Stop previous playback immediately for responsive UI
+        audioPlayer?.stop()
+        isPlaying = false
+        
+        // Update title immediately for instant UI feedback
+        currentTitle = "\(title) — \(artist)"
+        currentTrack = nil
+        errorMessage = nil // Clear previous errors
+        
+        // Check cache first - if cached, play instantly without loading state
+        if let cached = audioCache[urlString] {
+            // Instant playback from cache
             do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                await MainActor.run {
-                    do {
-                        self.audioPlayer = try AVAudioPlayer(data: data)
-                        self.audioPlayer?.delegate = self
-                        self.audioPlayer?.volume = self.volume
-                        self.audioPlayer?.prepareToPlay()
-                        if self.audioPlayer?.play() == true {
-                            self.isPlaying = true
-                            self.duration = self.audioPlayer?.duration ?? 0
-                            self.startPlaybackTimer()
-                            print("🎵 Playing: \(self.currentTitle ?? title)")
-                        } else {
-                            self.errorMessage = "Failed to start playback"
-                        }
-                        self.isLoading = false
-                    } catch {
-                        self.errorMessage = "Failed to create audio player: \(error.localizedDescription)"
-                        self.isLoading = false
-                    }
+                self.audioPlayer = try AVAudioPlayer(data: cached)
+                self.audioPlayer?.delegate = self
+                self.audioPlayer?.volume = self.volume
+                self.audioPlayer?.prepareToPlay()
+                if self.audioPlayer?.play() == true {
+                    self.isPlaying = true
+                    self.duration = self.audioPlayer?.duration ?? 0
+                    self.startPlaybackTimer()
+                    self.isLoading = false
+                    print("✅ Instant playback from cache: \(title)")
+                } else {
+                    self.errorMessage = "Failed to start playback"
+                    self.isPlaying = false
+                    self.isLoading = false
                 }
             } catch {
-                await MainActor.run {
-                    self.errorMessage = "Failed to load audio: \(error.localizedDescription)"
-                    self.isLoading = false
+                // Cache corrupted, fall through to loading
+                audioCache.removeValue(forKey: urlString)
+                isLoading = true
+            }
+        } else {
+            // Need to load - show loading state briefly
+            isLoading = true
+        }
+        
+        // Load in background if not cached - Optimized for speed
+        if isLoading {
+            Task.detached(priority: .userInitiated) {
+                do {
+                    // Use optimized session with fast timeout
+                    let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+                    let (loadedData, _) = try await self.audioSession.data(for: request)
+                    
+                    // Cache immediately
+                    await MainActor.run {
+                        self.audioCache[urlString] = loadedData
+                        // Keep last 5 tracks cached (increased for better performance)
+                        if self.audioCache.count > 5 {
+                            let firstKey = self.audioCache.keys.first!
+                            self.audioCache.removeValue(forKey: firstKey)
+                        }
+                        print("📦 Cached audio for: \(title)")
+                    }
+                    
+                    // Start playing as soon as data is loaded
+                    await MainActor.run {
+                        do {
+                            self.audioPlayer = try AVAudioPlayer(data: loadedData)
+                            self.audioPlayer?.delegate = self
+                            self.audioPlayer?.volume = self.volume
+                            self.audioPlayer?.prepareToPlay()
+                            if self.audioPlayer?.play() == true {
+                                self.isPlaying = true
+                                self.duration = self.audioPlayer?.duration ?? 0
+                                self.startPlaybackTimer()
+                                print("🎵 Playing: \(self.currentTitle ?? title)")
+                            } else {
+                                self.errorMessage = "Failed to start playback"
+                                self.isPlaying = false
+                            }
+                            self.isLoading = false
+                        } catch {
+                            self.errorMessage = "Failed to create audio player: \(error.localizedDescription)"
+                            self.isLoading = false
+                            self.isPlaying = false
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.errorMessage = "Failed to load audio: \(error.localizedDescription)"
+                        self.isLoading = false
+                        self.isPlaying = false
+                    }
                 }
             }
         }

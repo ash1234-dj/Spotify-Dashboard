@@ -10,6 +10,7 @@ import Firebase
 import FirebaseAuth
 import AuthenticationServices
 import CryptoKit
+import ObjectiveC
 
 // Conditional import - only available when GoogleSignIn SDK is added
 #if canImport(GoogleSignIn)
@@ -399,12 +400,29 @@ class AppleSignInCoordinator: NSObject, ASAuthorizationControllerDelegate, ASAut
         
         Task {
             do {
-                // Create Firebase credential from Apple ID token
-                let credential = OAuthProvider.appleCredential(withIDToken: idTokenString,
-                                                              rawNonce: nonce,
-                                                              fullName: appleIDCredential.fullName)
+                // PERMANENT SOLUTION: Create Firebase credential for Apple Sign-In
+                // Firebase 12.1.0 Swift API has static method unavailable
+                // Use Objective-C runtime to call class method directly
+                let selector = NSSelectorFromString("credentialWithProviderID:idToken:rawNonce:")
+                let providerClass: AnyClass = OAuthProvider.self as AnyClass
+                
+                guard let method = class_getClassMethod(providerClass, selector) else {
+                    throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Credential method not found in Firebase 12.1.0"])
+                }
+                
+                typealias CredentialMethod = @convention(c) (AnyClass, Selector, NSString, NSString, NSString) -> Unmanaged<AuthCredential>?
+                let impl = method_getImplementation(method)
+                let credentialFunc = unsafeBitCast(impl, to: CredentialMethod.self)
+                
+                guard let unmanagedCredential = credentialFunc(providerClass, selector, "apple.com" as NSString, idTokenString as NSString, nonce as NSString),
+                      let credential = unmanagedCredential.takeRetainedValue() as? AuthCredential else {
+                    throw NSError(domain: "AppleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create credential"])
+                }
                 
                 print("🔥 Signing in to Firebase with Apple credential...")
+                print("🔥 Using Objective-C runtime - PERMANENT SOLUTION for Firebase 12.1.0")
+                
+                // Sign in to Firebase
                 let authResult = try await Auth.auth().signIn(with: credential)
                 
                 print("✅ Firebase authentication successful")

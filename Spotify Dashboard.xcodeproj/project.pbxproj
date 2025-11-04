@@ -39,6 +39,7 @@
 		44AAB7502EADE22B0019F7D1 /* SpotifyPlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7362EADE22B0019F7D1 /* SpotifyPlaybackManager.swift */; };
 		44C000012E5A0000000000001 /* SpotifyDashboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C000012E5A0000000000000 /* SpotifyDashboardApp.swift */; };
 		44C000022E5A0000000000001 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44C000022E5A0000000000000 /* Config.swift */; };
+		44F0DCF12EB784A10002FC2F /* WikidataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F0DCF02EB784A10002FC2F /* WikidataManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 		44AAB73B2EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Spotify_Dashboard.xcdatamodel; sourceTree = "<group>"; };
 		44C000012E5A0000000000000 /* SpotifyDashboardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyDashboardApp.swift; sourceTree = "<group>"; };
 		44C000022E5A0000000000000 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		44F0DCF02EB784A10002FC2F /* WikidataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WikidataManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +111,7 @@
 		44AAB7382EADE22B0019F7D1 /* Spotify Dashboard 4 */ = {
 			isa = PBXGroup;
 			children = (
+				44F0DCF02EB784A10002FC2F /* WikidataManager.swift */,
 				4427E6362EAE8B3100B8C6F8 /* AudioPlayer 2.swift */,
 				4427E6322EAE8AB600B8C6F8 /* PodcastManager 2.swift */,
 				4427E6332EAE8AB600B8C6F8 /* PodcastView 2.swift */,
@@ -238,6 +241,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				44AAB73F2EADE22B0019F7D1 /* MainAppView.swift in Sources */,
+				44F0DCF12EB784A10002FC2F /* WikidataManager.swift in Sources */,
 				4427E6372EAE8B3100B8C6F8 /* AudioPlayer 2.swift in Sources */,
 				44AAB7402EADE22B0019F7D1 /* FirebaseSyncManager.swift in Sources */,
 				44AAB7412EADE22B0019F7D1 /* MoodDiaryView.swift in Sources */,

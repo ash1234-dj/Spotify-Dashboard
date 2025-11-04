@@ -29,7 +29,7 @@
 		44AAB7462EADE22B0019F7D1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */; };
 		44AAB7472EADE22B0019F7D1 /* SpotifyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7352EADE22B0019F7D1 /* SpotifyManager.swift */; };
 		44AAB7482EADE22B0019F7D1 /* OpenLibraryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */; };
-		44AAB7492EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7332EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld */; };
+		44AAB7492EADE22B0019F7D1 /* WikidataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7492EADE22B0019F7D0 /* WikidataManager.swift */; };
 		44AAB74A2EADE22B0019F7D1 /* FoundationModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7252EADE22B0019F7D1 /* FoundationModelsManager.swift */; };
 		44AAB74B2EADE22B0019F7D1 /* ReadingSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */; };
 		44AAB74C2EADE22B0019F7D1 /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AAB7222EADE22B0019F7D1 /* AuthenticationManager.swift */; };
@@ -61,6 +61,7 @@
 		44AAB72B2EADE22B0019F7D1 /* MoodDiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodDiaryView.swift; sourceTree = "<group>"; };
 		44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenLibraryManager.swift; sourceTree = "<group>"; };
+		44AAB7492EADE22B0019F7D0 /* WikidataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WikidataManager.swift; sourceTree = "<group>"; };
 		44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingSessionView.swift; sourceTree = "<group>"; };
 		44AAB72F2EADE22B0019F7D1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		44AAB7302EADE22B0019F7D1 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -128,6 +129,7 @@
 				44AAB72B2EADE22B0019F7D1 /* MoodDiaryView.swift */,
 				44AAB72C2EADE22B0019F7D1 /* OnboardingView.swift */,
 				44AAB72D2EADE22B0019F7D1 /* OpenLibraryManager.swift */,
+				44AAB7492EADE22B0019F7D0 /* WikidataManager.swift */,
 				44AAB72E2EADE22B0019F7D1 /* ReadingSessionView.swift */,
 				44AAB72F2EADE22B0019F7D1 /* SettingsView.swift */,
 				44AAB7302EADE22B0019F7D1 /* SignInView.swift */,
@@ -236,7 +238,7 @@
 				44AAB7462EADE22B0019F7D1 /* OnboardingView.swift in Sources */,
 				44AAB7472EADE22B0019F7D1 /* SpotifyManager.swift in Sources */,
 				44AAB7482EADE22B0019F7D1 /* OpenLibraryManager.swift in Sources */,
-				44AAB7492EADE22B0019F7D1 /* Spotify_Dashboard.xcdatamodeld in Sources */,
+				44AAB7492EADE22B0019F7D1 /* WikidataManager.swift in Sources */,
 				44AAB74A2EADE22B0019F7D1 /* FoundationModelsManager.swift in Sources */,
 				44AAB74B2EADE22B0019F7D1 /* ReadingSessionView.swift in Sources */,
 				44AAB74C2EADE22B0019F7D1 /* AuthenticationManager.swift in Sources */,

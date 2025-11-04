@@ -41,7 +41,7 @@ enum ReadingMood: String, CaseIterable {
         switch self {
         case .all: return []
         case .adventure: return ["adventure", "journey", "exploration", "quest", "travel"]
-        case .romance: return ["romance", "love", "marriage", "courtship", "passion"]
+        case .romance: return ["romance", "love story", "romantic", "marriage", "courtship", "passion", "wedding", "relationship", "affection", "romantic fiction"]
         case .mystery: return ["mystery", "detective", "crime", "murder", "investigation"]
         case .horror: return ["horror", "ghost", "monster", "terror", "fear", "supernatural"]
         case .fantasy: return ["fantasy", "magic", "fairy", "wizard", "dragon", "enchanted"]
@@ -140,6 +140,18 @@ class GutendexManager: ObservableObject {
     private var bookContentCache: [Int: BookContent] = [:]
     private let cacheExpiry: TimeInterval = 3600 // 1 hour
     
+    // Optimized URLSession for fast book loading
+    private lazy var fastSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15.0 // Faster timeout for book text
+        config.timeoutIntervalForResource = 30.0
+        config.waitsForConnectivity = false // Don't wait for connectivity
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        config.urlCache = URLCache(memoryCapacity: 100 * 1024 * 1024, diskCapacity: 500 * 1024 * 1024, diskPath: nil) // 100MB memory, 500MB disk
+        config.httpMaximumConnectionsPerHost = 4 // Allow parallel connections
+        return URLSession(configuration: config)
+    }()
+    
     init() {
         loadRecentBooks()
         loadReadingProgressFromStorage()
@@ -180,7 +192,9 @@ class GutendexManager: ObservableObject {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // Use optimized session with timeout and caching
+            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+            let (data, response) = try await fastSession.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GutendexError.networkError
@@ -260,7 +274,9 @@ class GutendexManager: ObservableObject {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            // Use optimized session with timeout and caching
+            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 15.0)
+            let (data, response) = try await fastSession.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GutendexError.networkError
@@ -276,28 +292,27 @@ class GutendexManager: ObservableObject {
                 throw GutendexError.decodingError
             }
             
-            // Log original text for debugging
-            print("📄 Original text length: \(text.count) characters")
-            print("📄 First 500 chars: \(String(text.prefix(500)))")
-            
-            // FIRST: Use original text WITHOUT cleaning to ensure it works
-            // Clean up Gutenberg license text at the beginning (conservative)
-            let cleanedText = cleanGutenbergText(text)
-            
-            print("📄 Cleaned text length: \(cleanedText.count) characters")
-            print("📄 First 500 chars after cleaning: \(String(cleanedText.prefix(500)))")
-            
-            // ALWAYS use cleaned text if it has substantial content, otherwise use original
-            let finalText = cleanedText.count > 500 ? cleanedText : text
-            
-            print("📄 Final text length: \(finalText.count) characters")
-            print("📄 Final text first 500 chars: \(String(finalText.prefix(500)))")
+            // Process text in background for faster UI response
+            let processedText = await Task.detached(priority: .userInitiated) {
+                // Clean up Gutenberg license text efficiently
+                var cleanedText = text
+                
+                // Remove Gutenberg footer efficiently
+                if let endRange = cleanedText.range(of: "END OF THE PROJECT GUTENBERG", options: .caseInsensitive) {
+                    cleanedText = String(cleanedText[..<endRange.lowerBound])
+                }
+                
+                // Remove excessive newlines efficiently
+                cleanedText = cleanedText.replacingOccurrences(of: "\n\n\n\n+", with: "\n\n\n", options: .regularExpression)
+                
+                return cleanedText.count > 500 ? cleanedText : text
+            }.value
             
             let content = BookContent(
                 id: "\(book.id)",
                 title: book.title,
                 author: book.primaryAuthor,
-                text: finalText,
+                text: processedText,
                 downloadCount: book.download_count,
                 languages: book.languages,
                 subjects: book.subjects,
@@ -310,8 +325,7 @@ class GutendexManager: ObservableObject {
             await MainActor.run {
                 self.bookContent = content
                 self.isLoading = false
-                print("✅ Loaded book content: \(finalText.count) characters")
-                print("✅ BookContent text is empty: \(content.text.isEmpty)")
+                print("✅ Loaded book content: \(processedText.count) characters")
             }
             
         } catch {
@@ -364,7 +378,9 @@ class GutendexManager: ObservableObject {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: popularURL)
+            // Use optimized session with caching
+            let request = URLRequest(url: popularURL, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+            let (data, response) = try await fastSession.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw GutendexError.networkError
@@ -481,50 +497,159 @@ class GutendexManager: ObservableObject {
             return
         }
         
-        // For specific moods, search using keywords
+        // For specific moods, search using keywords in PARALLEL with multiple strategies
         var allMoodBooks: [GutendexBook] = []
+        var foundAnyBooks = false
         
-        for keyword in mood.searchKeywords {
-            let searchQuery = keyword
-            print("🔍 Searching for mood keyword: \(searchQuery)")
-            
-            let trimmedQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            let encodedQuery = trimmedQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmedQuery
-            
-            let urlString = "\(baseURL)/books?search=\(encodedQuery)&page=1"
-            
-            guard let url = URL(string: urlString) else {
-                print("❌ Invalid URL for keyword: \(searchQuery)")
-                continue
+        await withTaskGroup(of: [GutendexBook].self) { group in
+            // Strategy 1: Search by keywords (primary keywords)
+            for keyword in mood.searchKeywords.prefix(6) { // Limit to first 6 for speed
+                group.addTask {
+                    let trimmedQuery = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let encodedQuery = trimmedQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmedQuery
+                    
+                    // Search multiple pages for better results
+                    var allBooks: [GutendexBook] = []
+                    for page in 1...3 { // Search first 3 pages
+                        let urlString = "\(self.baseURL)/books?search=\(encodedQuery)&page=\(page)"
+                        
+                        guard let url = URL(string: urlString) else {
+                            continue
+                        }
+                        
+                        do {
+                            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+                            let (data, response) = try await self.fastSession.data(for: request)
+                            
+                            guard let httpResponse = response as? HTTPURLResponse,
+                                  200...299 ~= httpResponse.statusCode else {
+                                continue
+                            }
+                            
+                            let gutendexResponse = try JSONDecoder().decode(GutendexResponse.self, from: data)
+                            allBooks.append(contentsOf: gutendexResponse.results)
+                            
+                            // If no more pages, stop
+                            if gutendexResponse.next == nil {
+                                break
+                            }
+                            
+                        } catch {
+                            print("⚠️ Error searching page \(page) for keyword \(keyword): \(error.localizedDescription)")
+                            continue
+                        }
+                    }
+                    
+                    print("✅ Found \(allBooks.count) books for keyword '\(keyword)'")
+                    return allBooks
+                }
             }
             
-            do {
-                let (data, response) = try await URLSession.shared.data(from: url)
+            // Strategy 2: Search by subjects/topics (using subjects endpoint)
+            // Search for books that have matching subjects
+            group.addTask {
+                // Try searching with mood name directly as subject
+                let subjectQuery = mood.rawValue.lowercased()
+                let urlString = "\(self.baseURL)/books?topic=\(subjectQuery)&page=1"
                 
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    continue
+                guard let url = URL(string: urlString) else {
+                    return []
                 }
                 
-                guard 200...299 ~= httpResponse.statusCode else {
-                    print("❌ HTTP Error for keyword \(searchQuery): \(httpResponse.statusCode)")
-                    continue
+                do {
+                    let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+                    let (data, response) = try await self.fastSession.data(for: request)
+                    
+                    guard let httpResponse = response as? HTTPURLResponse,
+                          200...299 ~= httpResponse.statusCode else {
+                        return []
+                    }
+                    
+                    let gutendexResponse = try JSONDecoder().decode(GutendexResponse.self, from: data)
+                    print("✅ Found \(gutendexResponse.results.count) books by subject '\(subjectQuery)'")
+                    return gutendexResponse.results
+                    
+                } catch {
+                    print("⚠️ Error searching by subject: \(error.localizedDescription)")
+                    return []
+                }
+            }
+            
+            // Strategy 3: Fallback - search popular books filtered by subjects
+            // This ensures we always have some results
+            group.addTask {
+                // Get popular books and filter by subjects containing mood keywords
+                let urlString = "\(self.baseURL)/books?sort=popularity&page=1&limit=100"
+                
+                guard let url = URL(string: urlString) else {
+                    return []
                 }
                 
-                let gutendexResponse = try JSONDecoder().decode(GutendexResponse.self, from: data)
-                
+                do {
+                    let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 8.0)
+                    let (data, response) = try await self.fastSession.data(for: request)
+                    
+                    guard let httpResponse = response as? HTTPURLResponse,
+                          200...299 ~= httpResponse.statusCode else {
+                        return []
+                    }
+                    
+                    let gutendexResponse = try JSONDecoder().decode(GutendexResponse.self, from: data)
+                    
+                    // Filter books by subjects that match mood keywords
+                    let matchingBooks = gutendexResponse.results.filter { book in
+                        let allSubjects = book.subjects.joined(separator: " ").lowercased()
+                        return mood.searchKeywords.contains { keyword in
+                            allSubjects.contains(keyword.lowercased())
+                        }
+                    }
+                    
+                    print("✅ Found \(matchingBooks.count) popular books matching mood '\(mood.rawValue)'")
+                    return matchingBooks
+                    
+                } catch {
+                    print("⚠️ Error searching popular books: \(error.localizedDescription)")
+                    return []
+                }
+            }
+            
+            // Collect all results in parallel
+            for await books in group {
+                if !books.isEmpty {
+                    foundAnyBooks = true
+                }
                 // Add unique books (avoid duplicates)
-                for book in gutendexResponse.results {
+                for book in books {
                     if !allMoodBooks.contains(where: { $0.id == book.id }) {
                         allMoodBooks.append(book)
                     }
                 }
-                
-                print("✅ Found \(gutendexResponse.results.count) books for keyword: \(searchQuery)")
-                
-            } catch {
-                print("❌ Error searching for keyword \(searchQuery): \(error)")
-                continue
             }
+        }
+        
+        // If still no books found, fall back to showing popular books with a note
+        if allMoodBooks.isEmpty {
+            print("⚠️ No books found for mood '\(mood.rawValue)', falling back to popular books")
+            await getPopularBooks()
+            await MainActor.run {
+                // Filter popular books by subjects for better relevance
+                self.moodFilteredBooks = self.popularBooks.filter { book in
+                    let allSubjects = book.subjects.joined(separator: " ").lowercased()
+                    let allText = (book.title + " " + book.primaryAuthor + " " + allSubjects).lowercased()
+                    return mood.searchKeywords.contains { keyword in
+                        allText.contains(keyword.lowercased())
+                    }
+                }
+                
+                // If still empty, just show all popular books
+                if self.moodFilteredBooks.isEmpty {
+                    self.moodFilteredBooks = Array(self.popularBooks.prefix(20))
+                }
+                
+                self.isLoading = false
+                print("✅ Loaded \(self.moodFilteredBooks.count) books for mood: \(mood.rawValue) (fallback)")
+            }
+            return
         }
         
         // Sort by download count (most popular first) and take top 50
@@ -632,33 +757,48 @@ class GutendexManager: ObservableObject {
     }
     
     func formatBookContent(_ content: String) -> String {
-        // Make content more human-readable
+        // Optimized formatting - process in chunks for large books
+        if content.count > 100_000 {
+            // For very large books, use optimized processing
+            return formatLargeBookContent(content)
+        }
+        
+        // Fast formatting for smaller books
         var formattedContent = content
         
-        // Add proper paragraph breaks
-        formattedContent = formattedContent.replacingOccurrences(of: "\n\n", with: "\n\n")
-        
-        // Fix common formatting issues
+        // Fix common formatting issues efficiently (single pass where possible)
         formattedContent = formattedContent.replacingOccurrences(of: "  ", with: " ")
         formattedContent = formattedContent.replacingOccurrences(of: "\n ", with: "\n")
         formattedContent = formattedContent.replacingOccurrences(of: " \n", with: "\n")
         
-        // Add spacing around punctuation for better readability
-        formattedContent = formattedContent.replacingOccurrences(of: ".", with: ". ")
-        formattedContent = formattedContent.replacingOccurrences(of: "!", with: "! ")
-        formattedContent = formattedContent.replacingOccurrences(of: "?", with: "? ")
-        
-        // Clean up multiple spaces
-        while formattedContent.contains("  ") {
-            formattedContent = formattedContent.replacingOccurrences(of: "  ", with: " ")
-        }
-        
-        // Clean up multiple newlines
-        while formattedContent.contains("\n\n\n") {
-            formattedContent = formattedContent.replacingOccurrences(of: "\n\n\n", with: "\n\n")
-        }
+        // Clean up multiple spaces and newlines using regex (more efficient)
+        formattedContent = formattedContent.replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
+        formattedContent = formattedContent.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
         
         return formattedContent.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    // Optimized formatting for large books (>100k characters)
+    private func formatLargeBookContent(_ content: String) -> String {
+        // Process in chunks to avoid memory issues
+        let chunkSize = 50_000
+        var chunks: [String] = []
+        
+        var startIndex = content.startIndex
+        while startIndex < content.endIndex {
+            let endIndex = content.index(startIndex, offsetBy: min(chunkSize, content.distance(from: startIndex, to: content.endIndex)), limitedBy: content.endIndex) ?? content.endIndex
+            let chunk = String(content[startIndex..<endIndex])
+            
+            // Quick formatting on chunk
+            var formattedChunk = chunk
+            formattedChunk = formattedChunk.replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
+            formattedChunk = formattedChunk.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
+            
+            chunks.append(formattedChunk)
+            startIndex = endIndex
+        }
+        
+        return chunks.joined().trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     // MARK: - Data Persistence

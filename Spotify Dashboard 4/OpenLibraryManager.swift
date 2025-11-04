@@ -226,7 +226,7 @@ class OpenLibraryManager: ObservableObject {
         print("🔍 Searching Open Library for author: '\(query)'")
         
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let urlString = "\(baseURL)/search/authors.json?q=\(encodedQuery)&limit=15" // Reduced for faster loading
+        let urlString = "\(baseURL)/search/authors.json?q=\(encodedQuery)&limit=15"
         
         guard let url = URL(string: urlString) else {
             await MainActor.run {
@@ -249,13 +249,29 @@ class OpenLibraryManager: ObservableObject {
             
             let searchResponse = try JSONDecoder().decode(AuthorSearchResponse.self, from: data)
             
-            // Show all authors with works, but we'll check data completeness in the UI
-            let authorsWithWorks = searchResponse.docs.filter { $0.workCount ?? 0 > 0 }
+            // Filter authors with works
+            var authorsWithWorks = searchResponse.docs.filter { $0.workCount ?? 0 > 0 }
             
+            // Update UI immediately with search results (show instantly)
             await MainActor.run {
                 self.searchResults = authorsWithWorks
                 self.isLoading = false
-                print("✅ Search completed: \(authorsWithWorks.count) authors found (all authors with works)")
+                print("✅ Search completed: \(authorsWithWorks.count) authors (showing immediately)")
+            }
+            
+            // CRITICAL: Fetch biographies for EVERY search result immediately (parallel, non-blocking)
+            if !authorsWithWorks.isEmpty {
+                print("📚 Fetching biographies for ALL \(authorsWithWorks.count) search results...")
+                Task.detached { [weak self] in
+                    guard let self = self else { return }
+                    var authors = authorsWithWorks
+                    // Fetch biographies in parallel for all search results
+                    await self.fetchBiographiesForAuthors(&authors)
+                    await MainActor.run {
+                        self.searchResults = authors
+                        print("✅ Biographies loaded for ALL \(authors.count) search results")
+                    }
+                }
             }
             
         } catch {
@@ -265,6 +281,41 @@ class OpenLibraryManager: ObservableObject {
                 self.isLoading = false
             }
         }
+    }
+    
+    // MARK: - Fetch Biographies for Multiple Authors
+    
+    private func fetchBiographiesForAuthors(_ authors: inout [AuthorSearchResult]) async {
+        print("📚 Starting to fetch biographies for ALL \(authors.count) authors in parallel...")
+        
+        // Fetch Open Library biographies for all authors in parallel
+        await withTaskGroup(of: (String, AuthorDetail?).self) { group in
+            for author in authors {
+                let authorId = extractAuthorId(from: author.key)
+                group.addTask {
+                    let detail = await self.getAuthorDetails(authorId: authorId)
+                    return (authorId, detail)
+                }
+            }
+            
+            // Collect all author details - getAuthorDetails already stores them in authorDetails dictionary
+            var fetchedCount = 0
+            for await (authorId, detail) in group {
+                fetchedCount += 1
+                // Biography is automatically stored in authorDetails by getAuthorDetails
+                if let detail = detail {
+                    if let bio = detail.bio, !bio.isEmpty {
+                        print("✅ [\(fetchedCount)/\(authors.count)] Biography for \(detail.name): \(bio.count) chars")
+                    } else {
+                        print("⚠️ [\(fetchedCount)/\(authors.count)] No Open Library bio for: \(detail.name)")
+                    }
+                } else {
+                    print("❌ [\(fetchedCount)/\(authors.count)] Failed to fetch details for author ID: \(authorId)")
+                }
+            }
+        }
+        
+        print("✅ Completed fetching Open Library biographies for \(authors.count) authors")
     }
     
     // MARK: - Get Author Details
@@ -285,7 +336,9 @@ class OpenLibraryManager: ObservableObject {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10.0 // Faster timeout
+            let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw OpenLibraryError.networkError
@@ -328,7 +381,9 @@ class OpenLibraryManager: ObservableObject {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10.0 // Faster timeout
+            let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw OpenLibraryError.networkError
@@ -361,15 +416,15 @@ class OpenLibraryManager: ObservableObject {
             self.errorMessage = nil
         }
         
-        print("🌟 Loading famous authors (simplified approach)...")
+        print("🌟 Loading famous authors with biographies...")
         print("🌟 Base URL: \(baseURL)")
         print("🌟 Famous authors count: \(famousAuthors.count)")
         
         var famousAuthorResults: [AuthorSearchResult] = []
         
-        // Process first 20 authors sequentially for reliable loading
-        let authorsToProcess = Array(famousAuthors.prefix(20))
-        print("🚀 Processing first \(authorsToProcess.count) authors sequentially")
+        // Process ALL authors (not just 20) sequentially for reliable loading
+        let authorsToProcess = Array(famousAuthors.prefix(50)) // Load more authors
+        print("🚀 Processing \(authorsToProcess.count) authors")
         
         for (index, authorName) in authorsToProcess.enumerated() {
             print("📝 Processing author \(index + 1)/\(authorsToProcess.count): \(authorName)")
@@ -403,7 +458,6 @@ class OpenLibraryManager: ObservableObject {
                 
                 if let author = searchResponse.docs.first {
                     if (author.workCount ?? 0) > 0 {
-                        // Include all authors with works - validate biographies when user taps
                         famousAuthorResults.append(author)
                         print("✅ Added author: \(author.name) (\(author.workCount ?? 0) works) - Total: \(famousAuthorResults.count)")
                         
@@ -411,12 +465,12 @@ class OpenLibraryManager: ObservableObject {
                         await MainActor.run {
                             self.famousAuthorResults = famousAuthorResults
                             if famousAuthorResults.count >= 3 && self.isLoading {
-                                print("🎯 Showing first 3 authors, continuing to load...")
+                                print("🎯 Showing first authors, continuing to load...")
                                 self.isLoading = false
                             }
                         }
                     } else {
-                        print("⚠️ Skipped \(authorName) - no works found (workCount: \(author.workCount ?? 0))")
+                        print("⚠️ Skipped \(authorName) - no works found")
                     }
                 } else {
                     print("⚠️ No author found in response for \(authorName)")
@@ -427,15 +481,30 @@ class OpenLibraryManager: ObservableObject {
             }
         }
         
+        // Show authors immediately, then fetch biographies for ALL authors
         await MainActor.run {
             self.famousAuthorResults = famousAuthorResults
             self.isLoading = false
-            print("✅ Loaded \(famousAuthorResults.count) famous authors")
-            print("📊 Final results: \(famousAuthorResults.map { $0.name })")
-            
+            print("✅ Loaded \(famousAuthorResults.count) famous authors (showing immediately)")
+        }
+        
+        // CRITICAL: Fetch biographies for EVERY author immediately (non-blocking but parallel)
+        if !famousAuthorResults.isEmpty {
+            print("📚 Fetching biographies for ALL \(famousAuthorResults.count) authors...")
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                // Fetch biographies in parallel for all authors
+                await self.fetchBiographiesForAuthors(&famousAuthorResults)
+                await MainActor.run {
+                    self.famousAuthorResults = famousAuthorResults
+                    print("✅ Biographies loaded for ALL \(famousAuthorResults.count) authors")
+                }
+            }
+        }
+        
+        await MainActor.run {
             if famousAuthorResults.isEmpty {
                 print("❌ No authors found - using fallback data")
-                // Use fallback data when API is not available
                 self.loadFallbackAuthors()
             } else {
                 print("🎉 Successfully loaded \(famousAuthorResults.count) authors!")

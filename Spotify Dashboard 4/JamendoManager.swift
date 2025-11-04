@@ -25,6 +25,17 @@ class JamendoManager: ObservableObject {
     
     private let clientId = "77de42c5"
     
+    // Optimized URLSession with fast configuration
+    private lazy var fastSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 5.0 // Fast timeout
+        config.timeoutIntervalForResource = 8.0
+        config.waitsForConnectivity = false // Don't wait for connectivity
+        config.requestCachePolicy = .useProtocolCachePolicy
+        config.urlCache = URLCache(memoryCapacity: 4 * 1024 * 1024, diskCapacity: 20 * 1024 * 1024, diskPath: nil)
+        return URLSession(configuration: config)
+    }()
+    
     func fetchTracks(tag: String, limit: Int = 10) async {
         await MainActor.run {
             self.isLoading = true
@@ -39,8 +50,11 @@ class JamendoManager: ObservableObject {
             }
             return
         }
+        
+        // Use optimized session with timeout
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 5.0)
+            let (data, response) = try await fastSession.data(for: request)
             guard let http = response as? HTTPURLResponse, 200...299 ~= http.statusCode else {
                 throw URLError(.badServerResponse)
             }

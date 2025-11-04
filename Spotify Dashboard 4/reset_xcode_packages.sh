@@ -27,6 +27,3 @@ echo "   2. Reopen the project"
 echo "   3. Wait for 'Resolving Package Graph' to complete"
 echo "   4. Build (Cmd + B) or Run (Cmd + R)"
 echo ""
-
-
-

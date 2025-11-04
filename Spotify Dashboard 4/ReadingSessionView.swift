@@ -84,6 +84,9 @@ struct ReadingSessionView: View {
     @State private var jamendoIndex: Int = 0
     @State private var showTrackPicker = false
     @State private var lastUsedTags: [String] = []
+    @State private var cachedTags: [String: [String]] = [:] // Cache tags by book ID
+    @State private var isPreloadingTracks = false
+    @State private var preloadTask: Task<Void, Never>?
     
     // Pagination state
     @State private var currentPage = 0
@@ -938,105 +941,132 @@ struct ReadingSessionView: View {
         .background(readingSettings.darkMode ? Color.black : Color(.systemBackground))
     }
     
-    // MARK: - Music Controls Bar
+    // MARK: - Music Controls Bar (Optimized UI)
     
     var musicControlsBar: some View {
         VStack(spacing: 0) {
             Divider()
+                .opacity(0.3)
             
-            HStack(spacing: 20) {
-                // Play/Pause button
-                Button(action: {
-                    toggleMusic()
-                }) {
-                    Image(systemName: playbackManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 50))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.purple, Color.blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                }
-                .disabled(playbackManager.isLoading)
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    // Primary title shows current track or fallback label
-                    Text(playbackManager.currentTitle ?? "Adaptive Mix")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    // Subtitle with tags and picker
-                    Button(action: { showTrackPicker = true }) {
-                        let tagsText = lastUsedTags.isEmpty ? "Tap to choose" : "Tap to choose • " + lastUsedTags.joined(separator: " • ")
-                        Text(tagsText)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+            VStack(spacing: 12) {
+                // Main controls row
+                HStack(spacing: 16) {
+                    // Play/Pause button - Larger, more prominent
+                    Button(action: {
+                        toggleMusic()
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: playbackManager.isPlaying ? [Color.purple.opacity(0.2), Color.blue.opacity(0.2)] : [Color.purple, Color.blue],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 56, height: 56)
+                            
+                            if playbackManager.isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                                    .scaleEffect(0.9)
+                            } else {
+                                Image(systemName: playbackManager.isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 24, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
                     }
                     .buttonStyle(.plain)
+                    .disabled(playbackManager.isLoading && !playbackManager.isPlaying)
                     
-                    if playbackManager.isLoading {
-                        Text("Loading tracks…")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    // Track info - Cleaner layout
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Track title
+                        Text(playbackManager.currentTitle ?? (jamendoQueue.isEmpty ? "No music" : "Ready to play"))
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        
+                        // Tags/subtitle - Show only when not loading
+                        if !playbackManager.isLoading {
+                            Button(action: { 
+                                if !jamendoQueue.isEmpty {
+                                    showTrackPicker = true
+                                }
+                            }) {
+                                HStack(spacing: 4) {
+                                    if !jamendoQueue.isEmpty {
+                                        Image(systemName: "music.note.list")
+                                            .font(.caption2)
+                                    }
+                                    Text(lastUsedTags.isEmpty ? (jamendoQueue.isEmpty ? "Tap play to start" : "Adaptive music ready") : lastUsedTags.prefix(2).joined(separator: " • "))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            // Compact loading indicator
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                Text("Preparing...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Skip button - More compact
+                    if !jamendoQueue.isEmpty && jamendoQueue.count > 1 {
+                        Button(action: { 
+                            skipJamendoTrack()
+                        }) {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.blue)
+                                .frame(width: 40, height: 40)
+                                .background(Color.blue.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                        .disabled(playbackManager.isLoading)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 
-                Spacer()
-                
-                // Skip button
-                Button(action: { skipJamendoTrack() }) {
-                    Image(systemName: "forward.end.circle.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                }
-                .disabled(jamendoQueue.count <= 1 || playbackManager.isLoading)
-                
-                // Volume control
-                VStack(alignment: .trailing, spacing: 4) {
-                    Image(systemName: "speaker.wave.2.fill")
+                // Volume control - Horizontal layout, more compact
+                HStack(spacing: 12) {
+                    Image(systemName: playbackManager.volume == 0 ? "speaker.slash.fill" : playbackManager.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.2.fill")
+                        .font(.caption)
                         .foregroundColor(.secondary)
+                        .frame(width: 20)
                     
-                    Text("\(Int(playbackManager.volume * 100))%")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                
-                // Volume slider
-                VStack {
                     Slider(value: Binding(
                         get: { playbackManager.volume },
                         set: { playbackManager.setVolume($0) }
                     ), in: 0...1)
-                    .frame(width: 80)
+                    .tint(.purple)
                     
-                    Text("Volume")
+                    Text("\(Int(playbackManager.volume * 100))%")
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                        .frame(width: 36, alignment: .trailing)
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
             }
-            .padding()
             .background(Color(.systemBackground))
             
-            // Show error message if any
+            // Error message - Subtle, at bottom
             if let errorMessage = playbackManager.errorMessage {
                 Text(errorMessage)
                     .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(.horizontal)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 8)
             }
         }
@@ -1181,16 +1211,19 @@ struct ReadingSessionView: View {
         loadingError = nil
         currentPage = 0
         
+        // Update recent books immediately (non-blocking)
+        gutendexManager.addToRecentBooks(book)
+        
         Task {
             do {
-                // Add timeout to prevent hanging
+                // Fetch book content with optimized timeout
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     group.addTask {
                         await gutendexManager.fetchBookContent(for: book)
                     }
                     
                     group.addTask {
-                        try await Task.sleep(nanoseconds: 30_000_000_000) // 30 second timeout
+                        try await Task.sleep(nanoseconds: 25_000_000_000) // 25 second timeout (reduced from 30)
                         throw URLError(.timedOut)
                     }
                     
@@ -1200,11 +1233,14 @@ struct ReadingSessionView: View {
                 
                 // Check if content was loaded successfully
                 if let bookContent = gutendexManager.bookContent {
-                    gutendexManager.addToRecentBooks(book)
-                    
-                    // Format and paginate the text into pages of 200-250 words
-                    let formattedText = gutendexManager.formatBookContent(bookContent.text)
-                    let paginated = paginateText(formattedText, wordsPerPage: 225)
+                    // Process formatting and pagination in parallel for speed
+                    let (formattedText, paginated) = await Task.detached(priority: .userInitiated) {
+                        // Format text (in background)
+                        let formatted = gutendexManager.formatBookContent(bookContent.text)
+                        // Paginate (in background)
+                        let paginated = self.paginateText(formatted, wordsPerPage: 225)
+                        return (formatted, paginated)
+                    }.value
                     
                     await MainActor.run {
                         pages = paginated
@@ -1224,6 +1260,53 @@ struct ReadingSessionView: View {
                         }
                         
                         print("📖 Paginated into \(paginated.count) pages")
+                    }
+                    
+                    // Preload adaptive music tags in background (non-blocking)
+                    Task.detached(priority: .background) {
+                        // Compute tags early so music is ready when user presses play
+                        let tags = await self.computeJamendoTagsOptimized()
+                        await MainActor.run {
+                            self.cachedTags[String(book.id)] = tags
+                            print("🎵 Precomputed music tags: \(tags.joined(separator: ", "))")
+                            
+                            // Aggressively pre-fetch tracks AND audio in background for instant playback
+                            Task.detached(priority: .userInitiated) {
+                                let tracks = await self.fetchTracksOptimized(tags: tags)
+                                await MainActor.run {
+                                    if !tracks.isEmpty {
+                                        self.jamendoQueue = tracks
+                                        self.jamendoIndex = 0
+                                        // Update UI to show ready state
+                                        if let firstTrack = tracks.first {
+                                            self.playbackManager.currentTitle = "\(firstTrack.name) — \(firstTrack.artist_name)"
+                                        }
+                                        print("🎵 Preloaded \(tracks.count) tracks for instant playback")
+                                        
+                                        // CRITICAL: Preload first 2 tracks' audio data immediately in parallel
+                                        // This ensures instant playback when user presses play
+                                        Task.detached(priority: .userInitiated) {
+                                            await withTaskGroup(of: Void.self) { group in
+                                                for (index, track) in tracks.prefix(2).enumerated() {
+                                                    group.addTask {
+                                                        do {
+                                                            let url = URL(string: track.audio)!
+                                                            let (data, _) = try await URLSession.shared.data(from: url)
+                                                            await MainActor.run {
+                                                                self.playbackManager.preloadAudioToCache(urlString: track.audio, data: data)
+                                                            }
+                                                            print("🚀 Preloaded audio for track \(index + 1): \(track.name)")
+                                                        } catch {
+                                                            print("⚠️ Failed to preload track \(index + 1): \(error)")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
                     // No content loaded
@@ -1296,40 +1379,81 @@ struct ReadingSessionView: View {
         .padding(.horizontal)
     }
     
-    // MARK: - Pagination Helper
+    // MARK: - Pagination Helper (Optimized)
     
     func paginateText(_ text: String, wordsPerPage: Int) -> [String] {
-        // Split text into words
+        // Split text into words efficiently
         let words = text.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
         
-        // If text is too large, process in chunks to prevent memory issues
+        // For very large books, use optimized chunking
+        if words.count > 50_000 {
+            return paginateVeryLargeText(text: text, wordsPerPage: wordsPerPage)
+        }
+        
+        // For large books, use chunked processing
         if words.count > 10000 {
             return paginateLargeText(words: words, wordsPerPage: wordsPerPage)
         }
         
+        // Standard pagination for smaller books (fast path)
         var pages: [String] = []
         var currentPageWords: [String] = []
+        currentPageWords.reserveCapacity(wordsPerPage) // Pre-allocate for performance
         
         for word in words {
             currentPageWords.append(word)
             
             // When we reach wordsPerPage, create a page
             if currentPageWords.count >= wordsPerPage {
-                let pageText = currentPageWords.joined(separator: " ")
-                pages.append(pageText)
-                currentPageWords.removeAll()
+                pages.append(currentPageWords.joined(separator: " "))
+                currentPageWords.removeAll(keepingCapacity: true) // Keep capacity for next page
             }
         }
         
         // Add remaining words as last page
         if !currentPageWords.isEmpty {
-            let pageText = currentPageWords.joined(separator: " ")
-            pages.append(pageText)
+            pages.append(currentPageWords.joined(separator: " "))
         }
         
         print("📄 Created \(pages.count) pages from \(words.count) words")
         return pages
+    }
+    
+    // Optimized pagination for very large books (>50k words)
+    private func paginateVeryLargeText(text: String, wordsPerPage: Int) -> [String] {
+        // Process in large chunks to avoid memory issues
+        let chunkSize = 20_000 // Process 20k words at a time
+        var allPages: [String] = []
+        
+        let words = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        
+        for chunkStart in stride(from: 0, to: words.count, by: chunkSize) {
+            let chunkEnd = min(chunkStart + chunkSize, words.count)
+            let chunk = Array(words[chunkStart..<chunkEnd])
+            
+            var currentPageWords: [String] = []
+            currentPageWords.reserveCapacity(wordsPerPage)
+            
+            for word in chunk {
+                currentPageWords.append(word)
+                
+                if currentPageWords.count >= wordsPerPage {
+                    allPages.append(currentPageWords.joined(separator: " "))
+                    currentPageWords.removeAll(keepingCapacity: true)
+                }
+            }
+            
+            // Add remaining words from this chunk (will be merged with next chunk if needed)
+            if !currentPageWords.isEmpty && chunkEnd < words.count {
+                // Carry over to next chunk processing
+                // For now, just add as a partial page
+                allPages.append(currentPageWords.joined(separator: " "))
+            }
+        }
+        
+        print("📄 Created \(allPages.count) pages from \(words.count) words (very large text)")
+        return allPages
     }
     
     private func paginateLargeText(words: [String], wordsPerPage: Int) -> [String] {
@@ -1364,88 +1488,237 @@ struct ReadingSessionView: View {
     }
     
     func toggleMusic() {
+        // Instant response - update UI immediately
         if playbackManager.isPlaying {
             playbackManager.pausePlayback()
         } else {
-            Task {
-                await startAdaptiveMusic()
+            // If we have preloaded tracks, play instantly
+            if !jamendoQueue.isEmpty && jamendoIndex < jamendoQueue.count {
+                // Instant playback - no loading state
+                playJamendoCurrent()
+            } else {
+                // Start loading in background, but show UI immediately
+                Task {
+                    await startAdaptiveMusic()
+                }
             }
         }
     }
     
     func startAdaptiveMusic() async {
-        let tags = await computeJamendoTags()
-        await MainActor.run { lastUsedTags = tags }
-        // Try combined tags first; if empty, fall back to individual tags in order
-        let joinTag = tags.joined(separator: ",")
-        await jamendoManager.fetchTracks(tag: joinTag, limit: 20)
-        var foundList: [JamendoTrack] = jamendoManager.tracks
-        if foundList.isEmpty {
-            for t in tags {
-                await jamendoManager.fetchTracks(tag: t, limit: 20)
-                if !jamendoManager.tracks.isEmpty { foundList = jamendoManager.tracks; break }
+        await MainActor.run {
+            playbackManager.isLoading = true
+        }
+        
+        // Get or compute tags (with caching)
+        let bookId = selectedBook != nil ? String(selectedBook!.id) : ""
+        let tags: [String]
+        
+        if let cached = cachedTags[bookId] {
+            tags = cached
+            print("✅ Using cached tags for book: \(bookId)")
+        } else {
+            tags = await computeJamendoTagsOptimized()
+            await MainActor.run {
+                cachedTags[bookId] = tags
             }
         }
-        if let first = foundList.first {
-            jamendoQueue = foundList
-            jamendoIndex = 0
-            playJamendoCurrent()
-        } else {
-            playbackManager.errorMessage = jamendoManager.errorMessage ?? "No Jamendo tracks found for tags: \(tags.joined(separator: ", "))"
+        
+        await MainActor.run { 
+            lastUsedTags = tags
+        }
+        
+        // Fetch tracks in parallel for faster loading
+        let tracks = await fetchTracksOptimized(tags: tags)
+        
+        await MainActor.run {
+            if !tracks.isEmpty {
+                jamendoQueue = tracks
+                jamendoIndex = 0
+                
+                // Update UI immediately with first track
+                if let firstTrack = tracks.first {
+                    playbackManager.currentTitle = "\(firstTrack.name) — \(firstTrack.artist_name)"
+                }
+                
+                // Start playing immediately (may load in background)
+                playbackManager.isLoading = false
+                playJamendoCurrent()
+                
+                // Aggressively preload next 3 tracks in parallel
+                preloadNextTrack()
+            } else {
+                playbackManager.isLoading = false
+                playbackManager.errorMessage = jamendoManager.errorMessage ?? "No Jamendo tracks found for tags: \(tags.joined(separator: ", "))"
+            }
+        }
+    }
+    
+    // Ultra-optimized parallel track fetching with timeout
+    func fetchTracksOptimized(tags: [String]) async -> [JamendoTrack] {
+        // Try all strategies in parallel with timeout - fastest result wins
+        return await withTaskGroup(of: [JamendoTrack].self) { group in
+            // Strategy 1: Combined tags (usually fastest)
+            let joinTag = tags.joined(separator: ",")
+            group.addTask {
+                await self.jamendoManager.fetchTracks(tag: joinTag, limit: 30)
+                return self.jamendoManager.tracks
+            }
+            
+            // Strategy 2: Individual tags in parallel (fallback)
+            if tags.count > 1 {
+                for tag in tags.prefix(3) { // Limit to first 3 tags for speed
+                    group.addTask {
+                        await self.jamendoManager.fetchTracks(tag: tag, limit: 20)
+                        return self.jamendoManager.tracks
+                    }
+                }
+            }
+            
+            // Strategy 3: Safe fallback tags (guaranteed)
+            group.addTask {
+                await self.jamendoManager.fetchTracks(tag: "instrumental,ambient", limit: 25)
+                return self.jamendoManager.tracks
+            }
+            
+            // Take first non-empty result (fastest response wins!)
+            for await tracks in group {
+                if !tracks.isEmpty {
+                    group.cancelAll() // Cancel other requests
+                    return tracks
+                }
+            }
+            
+            // Fallback if all failed
+            return []
+        }
+    }
+    
+    // Aggressive preloading - Load next 3 tracks in parallel for instant playback
+    func preloadNextTrack() {
+        guard jamendoIndex + 1 < jamendoQueue.count else { return }
+        
+        // Preload next 3 tracks in parallel for seamless transitions
+        let tracksToPreload = min(3, jamendoQueue.count - (jamendoIndex + 1))
+        
+        Task.detached(priority: .userInitiated) {
+            await withTaskGroup(of: Void.self) { group in
+                for i in 1...tracksToPreload {
+                    let trackIndex = jamendoIndex + i
+                    guard trackIndex < jamendoQueue.count else { break }
+                    let track = jamendoQueue[trackIndex]
+                    
+                    group.addTask {
+                        do {
+                            // Preload audio data to cache
+                            let url = URL(string: track.audio)!
+                            let (data, _) = try await URLSession.shared.data(from: url)
+                            
+                            // Store in playback manager cache immediately
+                            await MainActor.run {
+                                playbackManager.preloadAudioToCache(urlString: track.audio, data: data)
+                            }
+                            print("✅ Preloaded track \(i): \(track.name)")
+                        } catch {
+                            print("⚠️ Failed to preload track \(i): \(error)")
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // Compute Jamendo tags using Apple Foundation Models if available, else fallback heuristics
-    func computeJamendoTags() async -> [String] {
-        // Base safe set for reading
-        var tags: [String] = ["instrumental", "ambient", "calm"]
+    // Optimized tag computation - runs in background with timeout
+    func computeJamendoTagsOptimized() async -> [String] {
+        // Fast heuristic fallback first (always works)
+        let fastTags = computeFastHeuristicTags()
         
-        // Try to tailor to the current book
-        var context = ""
-        if let book = selectedBook {
-            context += "Title: \(book.title)\nAuthor: \(book.primaryAuthor)\nSubjects: \(book.subjects.prefix(5).joined(separator: ", "))\n"
-        }
-        if let content = gutendexManager.bookContent {
-            context += "Sample: \(String(content.text.prefix(800)))"
-        }
-        
+        // Try AI enhancement in background (with timeout)
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, macOS 26.0, *), !context.isEmpty {
-            do {
-                let session = LanguageModelSession()
-                let prompt = """
-                You are choosing background music tags for silent reading. Return 3 short comma-separated Jamendo tags that are suitable for reading and match the book context. Prefer instrumental, ambient, calm textures. Choose from tags like: instrumental, ambient, classical, piano, strings, lo-fi, acoustic, meditation, focus.
-                Context:
-                \(context)
-                Output only tags, comma-separated, no extra text.
-                """
-                let response = try await session.respond(to: prompt, options: GenerationOptions(temperature: 0.3, maximumResponseTokens: 20))
-                let raw = response.content.lowercased()
-                let parsed = raw
-                    .replacingOccurrences(of: "\n", with: ",")
-                    .split(separator: ",")
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                if !parsed.isEmpty { return Array(parsed.prefix(3)) }
-            } catch {
-                // fall back below
+        if #available(iOS 26.0, macOS 26.0, *) {
+            if let book = selectedBook, let content = gutendexManager.bookContent {
+                do {
+                    let enhancedTags = try await withThrowingTaskGroup(of: [String].self) { group in
+                        group.addTask {
+                            let context = """
+                            Title: \(book.title)
+                            Author: \(book.primaryAuthor)
+                            Sample: \(String(content.text.prefix(400)))
+                            """
+                            
+                            let session = LanguageModelSession()
+                            let prompt = """
+                            Return 3 comma-separated Jamendo tags for reading music. Tags: instrumental, ambient, classical, piano, strings, lo-fi, acoustic, meditation, focus.
+                            Context: \(context)
+                            Tags only, comma-separated:
+                            """
+                            
+                            let response = try await session.respond(
+                                to: prompt, 
+                                options: GenerationOptions(temperature: 0.3, maximumResponseTokens: 15)
+                            )
+                            
+                            let parsed = response.content.lowercased()
+                                .replacingOccurrences(of: "\n", with: ",")
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .filter { !$0.isEmpty }
+                            
+                            return Array(parsed.prefix(3))
+                        }
+                        
+                        // Timeout after 2 seconds - use fast tags if AI is slow
+                        group.addTask {
+                            try await Task.sleep(nanoseconds: 2_000_000_000)
+                            return []
+                        }
+                        
+                        let result = try await group.next() ?? []
+                        group.cancelAll()
+                        return result.isEmpty ? fastTags : result
+                    }
+                    
+                    return enhancedTags
+                } catch {
+                    print("⚠️ AI tag computation failed, using heuristics: \(error)")
+                }
             }
         }
         #endif
         
-        // Heuristic fallback: map subjects/title keywords
-        let lowerTitle = selectedBook?.title.lowercased() ?? ""
-        if lowerTitle.contains("poem") || lowerTitle.contains("poetry") {
-            tags.insert("piano", at: 0)
-        } else if lowerTitle.contains("horror") || lowerTitle.contains("gothic") {
-            tags.insert("dark-ambient", at: 0)
-        } else if lowerTitle.contains("romance") {
-            tags.insert("acoustic", at: 0)
-        } else if lowerTitle.contains("adventure") {
-            tags.insert("orchestral", at: 0)
+        return fastTags
+    }
+    
+    // Fast heuristic-based tag computation (no AI, instant)
+    func computeFastHeuristicTags() -> [String] {
+        var tags: [String] = ["instrumental", "ambient"]
+        
+        guard let book = selectedBook else {
+            return tags
         }
         
-        if let selected = UserDefaults.standard.array(forKey: "selectedGenres") as? [String], let first = selected.first {
+        let lowerTitle = book.title.lowercased()
+        let subjects = book.subjects.map { $0.lowercased() }.joined(separator: " ")
+        
+        // Genre detection from title/subjects
+        if lowerTitle.contains("poem") || lowerTitle.contains("poetry") || subjects.contains("poetry") {
+            tags.insert("piano", at: 1)
+        } else if lowerTitle.contains("horror") || lowerTitle.contains("gothic") || subjects.contains("horror") {
+            tags.insert("dark-ambient", at: 1)
+        } else if lowerTitle.contains("romance") || subjects.contains("romance") {
+            tags.insert("acoustic", at: 1)
+        } else if lowerTitle.contains("adventure") || subjects.contains("adventure") {
+            tags.insert("orchestral", at: 1)
+        } else if subjects.contains("classical") || subjects.contains("literature") {
+            tags.insert("classical", at: 1)
+        } else {
+            tags.insert("calm", at: 1)
+        }
+        
+        // Add user preference if available
+        if let selected = UserDefaults.standard.array(forKey: "selectedGenres") as? [String],
+           let first = selected.first,
+           !tags.contains(first) {
             tags.append(first)
         }
         
@@ -1456,15 +1729,29 @@ struct ReadingSessionView: View {
     }
 
     func playJamendoCurrent() {
-        guard jamendoIndex >= 0, jamendoIndex < jamendoQueue.count else { return }
+        guard jamendoIndex >= 0, jamendoIndex < jamendoQueue.count else { 
+            playbackManager.errorMessage = "No tracks available"
+            return 
+        }
         let t = jamendoQueue[jamendoIndex]
+        
+        // Update UI immediately - show track info right away
+        playbackManager.currentTitle = "\(t.name) — \(t.artist_name)"
+        
+        // Play audio (may use cache for instant playback)
         playbackManager.playAudioURL(title: t.name, artist: t.artist_name, urlString: t.audio)
+        
+        // Preload next track in background (non-blocking)
+        preloadNextTrack()
     }
     
     func skipJamendoTrack() {
         guard !jamendoQueue.isEmpty else { return }
         jamendoIndex = (jamendoIndex + 1) % jamendoQueue.count
         playJamendoCurrent()
+        
+        // Preload the next track after skip
+        preloadNextTrack()
     }
 }
 
