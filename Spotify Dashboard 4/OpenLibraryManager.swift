@@ -149,6 +149,7 @@ class OpenLibraryManager: ObservableObject {
     @Published var famousAuthorResults: [AuthorSearchResult] = []
     @Published var authorDetails: [String: AuthorDetail] = [:]
     @Published var authorWorks: [String: [AuthorWork]] = [:]
+    @Published var authorPhotoURLs: [String: URL] = [:]
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -352,6 +353,13 @@ class OpenLibraryManager: ObservableObject {
             
             await MainActor.run {
                 self.authorDetails[authorId] = authorDetail
+                
+                if let photoId = authorDetail.photos?.first {
+                    let urlString = self.getAuthorPhotoURL(photoId: photoId)
+                    if let url = URL(string: urlString) {
+                        self.authorPhotoURLs[authorId] = url
+                    }
+                }
             }
             
             print("✅ Loaded author details for: \(authorDetail.name)")

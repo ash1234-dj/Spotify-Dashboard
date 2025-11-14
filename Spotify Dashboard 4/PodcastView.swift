@@ -7,6 +7,34 @@
 
 import SwiftUI
 
+// MARK: - HTML Utilities
+
+private func cleanedHTMLText(from text: String) -> String {
+    guard !text.isEmpty else { return "" }
+    
+    if let data = text.data(using: .utf8),
+       let attributedString = try? NSAttributedString(
+            data: data,
+            options: [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue
+            ],
+            documentAttributes: nil
+       ) {
+        let plain = attributedString.string
+        return plain.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    return text.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        .replacingOccurrences(of: "&nbsp;", with: " ")
+        .replacingOccurrences(of: "&amp;", with: "&")
+        .replacingOccurrences(of: "&quot;", with: "\"")
+        .replacingOccurrences(of: "&#39;", with: "'")
+        .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
 struct PodcastView: View {
     @StateObject private var podcastManager = PodcastManager()
     @StateObject private var audioPlayer = AudioPlayerManager()
@@ -471,7 +499,7 @@ struct PodcastDetailView: View {
     @StateObject private var podcastManager = PodcastManager()
     @State private var showingAIRec = false
     @State private var isLoadingReason = false
-    @State private var selectedEpisode: PodcastEpisode?
+    @State private var showEpisodesSheet = false
     
     var body: some View {
         ScrollView {
@@ -591,7 +619,7 @@ struct PodcastDetailView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
                     
-                    Text(podcast.description)
+                        Text(cleanedHTMLText(from: podcast.description))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -613,8 +641,8 @@ struct PodcastDetailView: View {
                 .cornerRadius(12)
                 .padding(.horizontal)
                 
-                // Episodes List
-                VStack(alignment: .leading, spacing: 16) {
+                // Episodes access
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Episodes")
                             .font(.headline)
@@ -624,39 +652,58 @@ struct PodcastDetailView: View {
                         
                         if podcastManager.isLoadingEpisodes {
                             ProgressView()
+                        } else if !podcastManager.episodes.isEmpty {
+                            Text("\(podcastManager.episodes.count) loaded")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding(.horizontal)
                     
-                    if podcastManager.episodes.isEmpty && !podcastManager.isLoadingEpisodes {
-                        Button(action: {
-                            Task {
-                                await podcastManager.fetchEpisodes(for: podcast.id)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                Text("Load Episodes")
-                            }
-                            .foregroundColor(.white)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.purple, Color.blue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(15)
-                        }
+                    Text("Tap below to browse the complete list of episodes for this podcast.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal)
-                    }
                     
-                    ForEach(podcastManager.episodes.prefix(10)) { episode in
-                        EpisodeCard(episode: episode, audioPlayer: audioPlayer)
+                    Button(action: {
+                        if podcastManager.episodes.isEmpty {
+                            loadEpisodes(forceRefresh: false)
+                        }
+                        showEpisodesSheet = true
+                    }) {
+                        HStack {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                            Text("View All Episodes")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .foregroundColor(.white)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [Color.purple, Color.blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(15)
+                    }
+                    .padding(.horizontal)
+                    
+                    if !podcastManager.episodes.isEmpty {
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        Text("Latest Episodes")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .padding(.horizontal)
+                        
+                        ForEach(podcastManager.episodes.prefix(3)) { episode in
+                            EpisodeCard(episode: episode, audioPlayer: audioPlayer)
+                        }
                     }
                 }
                 .padding(.bottom)
@@ -670,6 +717,13 @@ struct PodcastDetailView: View {
                     dismiss()
                 }
             }
+        }
+        .sheet(isPresented: $showEpisodesSheet) {
+            EpisodesSheetView(
+                podcast: podcast,
+                podcastManager: podcastManager,
+                audioPlayer: audioPlayer
+            )
         }
     }
     
@@ -685,7 +739,15 @@ struct PodcastDetailView: View {
         }
     }
     
-    private func loadEpisodes() {
+    private func loadEpisodes(forceRefresh: Bool) {
+        if podcastManager.isLoadingEpisodes {
+            return
+        }
+        
+        if !forceRefresh && !podcastManager.episodes.isEmpty {
+            return
+        }
+        
         Task {
             await podcastManager.fetchEpisodes(for: podcast.id)
         }
@@ -718,7 +780,7 @@ struct EpisodeCard: View {
                     .foregroundColor(.primary)
                     .lineLimit(2)
                 
-                Text(episode.description)
+                Text(cleanedHTMLText(from: episode.description))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -747,5 +809,108 @@ struct EpisodeCard: View {
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         .padding(.horizontal)
     }
+    
 }
+
+// MARK: - Episodes Sheet
+
+struct EpisodesSheetView: View {
+    let podcast: Podcast
+    @ObservedObject var podcastManager: PodcastManager
+    @ObservedObject var audioPlayer: AudioPlayerManager
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if podcastManager.isLoadingEpisodes && podcastManager.episodes.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Loading episodes…")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if podcastManager.episodes.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "waveform.circle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.purple)
+                        Text("No episodes available right now.")
+                            .font(.headline)
+                        Text("Try refreshing to fetch the latest episodes from ListenNotes.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        Button {
+                            Task {
+                                await podcastManager.fetchEpisodes(for: podcast.id)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.clockwise")
+                                Text("Reload")
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.purple, Color.blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(podcastManager.episodes) { episode in
+                                EpisodeCard(episode: episode, audioPlayer: audioPlayer)
+                            }
+                        }
+                        .padding(.vertical)
+                    }
+                    .refreshable {
+                        await podcastManager.fetchEpisodes(for: podcast.id)
+                    }
+                }
+            }
+            .navigationTitle("All Episodes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if podcastManager.isLoadingEpisodes {
+                        ProgressView()
+                    } else {
+                        Button {
+                            Task {
+                                await podcastManager.fetchEpisodes(for: podcast.id)
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            if podcastManager.episodes.isEmpty && !podcastManager.isLoadingEpisodes {
+                await podcastManager.fetchEpisodes(for: podcast.id)
+            }
+        }
+    }
+}
+
 

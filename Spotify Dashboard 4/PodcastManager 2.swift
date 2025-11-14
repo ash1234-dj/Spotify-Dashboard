@@ -123,7 +123,7 @@ class PodcastManager: ObservableObject {
     @Published var aiRecommendationReason: String = ""
     
     private let availableMoods = [
-        "Calm", "Inspired", "Sad", "Curious", "Anxious", 
+        "Calm", "Inspired", "Sad", "Curious", "Anxious",
         "Happy", "Reflective", "Excited", "Nostalgic", "Focused"
     ]
     
@@ -340,61 +340,88 @@ class PodcastManager: ObservableObject {
         
         print("📡 Fetching episodes for podcast: \(podcastId)")
         
-        let urlString = "\(ListenNotesConfig.baseURL)/podcasts/\(podcastId)"
-        
-        print("🌐 URL: \(urlString)")
-        
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
-            isLoadingEpisodes = false
-            return
+        struct PodcastDetailResponse: Codable {
+            let id: String
+            let title: String
+            let episodes: [PodcastEpisode]
+            let nextEpisodePubDate: Int?
+            
+            enum CodingKeys: String, CodingKey {
+                case id
+                case title
+                case episodes
+                case nextEpisodePubDate = "next_episode_pub_date"
+            }
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(ListenNotesConfig.apiKey, forHTTPHeaderField: "X-ListenAPI-Key")
+        var collectedEpisodes: [PodcastEpisode] = []
+        var nextEpisodePubDate: Int? = nil
+        var requestsPerformed = 0
+        let maxRequests = 10
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            print("📦 Received \(data.count) bytes of episode data")
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw URLError(.badServerResponse)
-            }
-            
-            print("📊 HTTP Status: \(httpResponse.statusCode)")
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                if httpResponse.statusCode == 429 {
-                    errorMessage = "Rate limit exceeded. Please try again later."
-                } else if httpResponse.statusCode == 401 {
-                    errorMessage = "Authentication failed. Check API key."
-                } else {
-                    errorMessage = "Failed to fetch episodes: HTTP \(httpResponse.statusCode)"
+            repeat {
+                requestsPerformed += 1
+                
+                var components = URLComponents(string: "\(ListenNotesConfig.baseURL)/podcasts/\(podcastId)")!
+                var queryItems = [
+                    URLQueryItem(name: "sort", value: "recent_first"),
+                    URLQueryItem(name: "episodes_limit", value: "100")
+                ]
+                if let next = nextEpisodePubDate {
+                    queryItems.append(URLQueryItem(name: "next_episode_pub_date", value: String(next)))
                 }
-                print("❌ HTTP Error: \(httpResponse.statusCode)")
-                if let errorData = String(data: data, encoding: .utf8) {
-                    print("❌ Error response: \(errorData.prefix(500))")
+                components.queryItems = queryItems
+                
+                guard let url = components.url else {
+                    throw URLError(.badURL)
                 }
-                isLoadingEpisodes = false
-                return
-            }
+                
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                request.setValue(ListenNotesConfig.apiKey, forHTTPHeaderField: "X-ListenAPI-Key")
+                
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw URLError(.badServerResponse)
+                }
+                
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    if httpResponse.statusCode == 429 {
+                        errorMessage = "Rate limit exceeded. Please try again later."
+                    } else if httpResponse.statusCode == 401 {
+                        errorMessage = "Authentication failed. Check API key."
+                    } else {
+                        errorMessage = "Failed to fetch episodes: HTTP \(httpResponse.statusCode)"
+                    }
+                    if let errorData = String(data: data, encoding: .utf8) {
+                        print("❌ Error response: \(errorData.prefix(500))")
+                    }
+                    throw URLError(.badServerResponse)
+                }
+                
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                let detailResponse = try decoder.decode(PodcastDetailResponse.self, from: data)
+                
+                collectedEpisodes.append(contentsOf: detailResponse.episodes)
+                self.episodes = collectedEpisodes
+                nextEpisodePubDate = detailResponse.nextEpisodePubDate
+                
+                if detailResponse.episodes.isEmpty {
+                    nextEpisodePubDate = nil
+                }
+                
+                print("✅ Batch \(requestsPerformed): fetched \(detailResponse.episodes.count) episodes. Total so far: \(collectedEpisodes.count)")
+                
+                if nextEpisodePubDate != nil {
+                    try await Task.sleep(nanoseconds: 150_000_000)
+                }
+            } while nextEpisodePubDate != nil && requestsPerformed < maxRequests
             
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
-            
-            struct PodcastDetailResponse: Codable {
-                let id: String
-                let title: String
-                let episodes: [PodcastEpisode]
-            }
-            
-            let detailResponse = try decoder.decode(PodcastDetailResponse.self, from: data)
-            self.episodes = detailResponse.episodes
             isLoadingEpisodes = false
-            
-            print("✅ Fetched \(self.episodes.count) episodes for podcast: \(detailResponse.title)")
+            print("✅ Finished fetching episodes. Total loaded: \(self.episodes.count)")
             
         } catch let decodingError as DecodingError {
             print("❌ JSON Decoding Error: \(decodingError)")
@@ -521,4 +548,5 @@ extension PodcastManager {
         await searchPodcastsByMood(detectedMood)
     }
 }
+
 

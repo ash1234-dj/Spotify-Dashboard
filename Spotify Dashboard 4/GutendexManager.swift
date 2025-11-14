@@ -83,6 +83,36 @@ struct GutendexBook: Codable, Identifiable {
         // Use direct Gutenberg URL for reliable plain text
         return "https://www.gutenberg.org/cache/epub/\(id)/pg\(id).txt"
     }
+    
+    var coverImageURL: URL? {
+        let preferredImageKeys = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/jpeg; charset=utf-8",
+            "image/png; charset=utf-8"
+        ]
+        
+        for key in preferredImageKeys {
+            if let urlString = formats[key],
+               let url = URL(string: urlString) {
+                return url
+            }
+        }
+        
+        if let imageFormat = formats.first(where: { $0.key.lowercased().hasPrefix("image/") }),
+           let url = URL(string: imageFormat.value) {
+            return url
+        }
+        
+        // Fallback to Open Library covers (may not always exist, but often provides a relevant image)
+        if let fallbackURL = URL(string: "https://covers.openlibrary.org/b/id/\(id)-M.jpg") {
+            return fallbackURL
+        }
+        
+        return nil
+    }
 }
 
 struct GutendexAuthor: Codable {

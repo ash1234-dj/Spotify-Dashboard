@@ -890,6 +890,8 @@ struct BookPickerView: View {
                     
                     TextField("Search books...", text: $searchText)
                         .textFieldStyle(PlainTextFieldStyle())
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                     
                     if !searchText.isEmpty {
                         Button(action: {

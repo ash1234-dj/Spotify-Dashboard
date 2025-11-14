@@ -164,6 +164,8 @@ struct ReadingSessionView: View {
                     
                     TextField("Search books...", text: $searchText)
                         .textFieldStyle(PlainTextFieldStyle())
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                         .onSubmit {
                             performSearch()
                         }
@@ -372,22 +374,7 @@ struct ReadingSessionView: View {
             showSearch = false
         }) {
             HStack(spacing: 16) {
-                // Book icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 80)
-                    
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(.purple)
-                }
+                bookCoverView(for: book, width: 60, height: 80)
                 
                 // Book info
                 VStack(alignment: .leading, spacing: 8) {
@@ -469,25 +456,47 @@ struct ReadingSessionView: View {
     
     // MARK: - Book Options View
     
+    func bookCoverView(for book: GutendexBook, width: CGFloat = 120, height: CGFloat = 160) -> some View {
+        let cornerRadius: CGFloat = width <= 80 ? 10 : 16
+        
+        return ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(Color(.systemGray6))
+            
+            if let url = book.coverImageURL {
+                AsyncImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.25))) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.8)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "book.fill")
+                            .font(.system(size: width <= 80 ? 24 : 48))
+                            .foregroundColor(.purple)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            } else {
+                Image(systemName: "book.fill")
+                    .font(.system(size: width <= 80 ? 24 : 48))
+                    .foregroundColor(.purple)
+            }
+        }
+        .frame(width: width, height: height)
+    }
+    
     func bookOptionsView(book: GutendexBook) -> some View {
         VStack(spacing: 24) {
             // Book Header
             VStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 160)
-                    
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.purple)
-                }
+                bookCoverView(for: book)
                 
                 Text(book.title)
                     .font(.title2)
@@ -1807,19 +1816,6 @@ struct ReadingSettingsView: View {
                     }
                 }
                 
-                Section("Music") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Adaptive music is playing based on your reading progress and story mood.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Image(systemName: "music.note")
-                            Text("Spotify Connected")
-                                .foregroundColor(.green)
-                        }
-                    }
-                }
             }
             .navigationTitle("Reading Settings")
             .navigationBarTitleDisplayMode(.inline)

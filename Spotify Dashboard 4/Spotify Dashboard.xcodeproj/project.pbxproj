@@ -140,7 +140,7 @@
 				44AAB7362EADE22B0019F7D1 /* SpotifyPlaybackManager.swift */,
 				44AAB7372EADE22B0019F7D1 /* StorySelectionView.swift */,
 			);
-			path = "Spotify Dashboard 4";
+			path = ".";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

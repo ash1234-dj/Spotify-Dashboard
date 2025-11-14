@@ -14,8 +14,12 @@ struct SettingsView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("selectedGenres") private var selectedGenresData: Data = Data()
     @AppStorage("moodSensitivity") private var moodSensitivity = 0.5
-    
-    
+    @AppStorage("accessibilityDyslexiaFontEnabled") private var accessibilityDyslexiaFontEnabled = false
+    @AppStorage("accessibilityReduceMotion") private var accessibilityReduceMotion = false
+    @AppStorage("accessibilityIncreaseContrast") private var accessibilityIncreaseContrast = false
+    @AppStorage("accessibilityVoiceOver") private var accessibilityVoiceOver = true
+    @AppStorage("accessibilityTextSize") private var accessibilityTextSize = "Default"
+
     @State private var showingResetAlert = false
     
     @State private var showingSignIn = false
@@ -133,12 +137,12 @@ struct SettingsView: View {
                 
                 // Accessibility
                 Section("Accessibility") {
-                    Toggle("Dyslexia-Friendly Font", isOn: .constant(false))
-                    Toggle("Reduce Motion", isOn: .constant(false))
-                    Toggle("Increase Contrast", isOn: .constant(false))
-                    Toggle("VoiceOver Support", isOn: .constant(true))
+                    Toggle("Dyslexia-Friendly Font", isOn: $accessibilityDyslexiaFontEnabled)
+                    Toggle("Reduce Motion", isOn: $accessibilityReduceMotion)
+                    Toggle("Increase Contrast", isOn: $accessibilityIncreaseContrast)
+                    Toggle("VoiceOver Support", isOn: $accessibilityVoiceOver)
                     
-                    Picker("Text Size", selection: .constant("Default")) {
+                    Picker("Text Size", selection: $accessibilityTextSize) {
                         Text("Small").tag("Small")
                         Text("Default").tag("Default")
                         Text("Large").tag("Large")

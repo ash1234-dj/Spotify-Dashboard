@@ -329,22 +329,38 @@ struct AuthorCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
-                // Author icon
+                // Author cover
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 80)
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.systemGray6))
                     
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(.purple)
+                    if let url = authorPhotoURL {
+                        AsyncImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.25))) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .scaleEffect(0.8)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            case .failure:
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 30))
+                                    .foregroundColor(.purple)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.purple)
+                    }
                 }
+                .frame(width: 60, height: 80)
                 
                 // Author info
                 VStack(alignment: .leading, spacing: 6) {
@@ -407,6 +423,13 @@ struct AuthorCard: View {
         if let detail = openLibraryManager.authorDetails[authorId],
            let bio = detail.bio, !bio.isEmpty {
             biographyPreview = String(bio.prefix(100)) + (bio.count > 100 ? "..." : "")
+            
+            if let photoId = detail.photos?.first {
+                let urlString = openLibraryManager.getAuthorPhotoURL(photoId: photoId)
+                if let url = URL(string: urlString) {
+                    openLibraryManager.authorPhotoURLs[authorId] = url
+                }
+            }
             return
         }
         
@@ -415,9 +438,19 @@ struct AuthorCard: View {
         if let wikidataInfo = wikidataManager.authorInfo.values.first(where: { $0.name == author.name }) {
             if let bio = wikidataInfo.biography, !bio.isEmpty {
                 biographyPreview = String(bio.prefix(100)) + (bio.count > 100 ? "..." : "")
+                if let imageString = wikidataInfo.imageURL,
+                   let url = URL(string: imageString),
+                   openLibraryManager.authorPhotoURLs[authorId] == nil {
+                    openLibraryManager.authorPhotoURLs[authorId] = url
+                }
                 return
             } else if let desc = wikidataInfo.description, !desc.isEmpty {
                 biographyPreview = String(desc.prefix(100)) + (desc.count > 100 ? "..." : "")
+                if let imageString = wikidataInfo.imageURL,
+                   let url = URL(string: imageString),
+                   openLibraryManager.authorPhotoURLs[authorId] == nil {
+                    openLibraryManager.authorPhotoURLs[authorId] = url
+                }
                 return
             }
         }
@@ -453,6 +486,12 @@ struct AuthorCard: View {
                             biographyPreview = String(bio.prefix(100)) + (bio.count > 100 ? "..." : "")
                             isLoadingBio = false
                             print("✅ Wikidata bio from cache INSTANT for: \(author.name)")
+                            
+                            if let imageString = wikidataInfo.imageURL,
+                               let url = URL(string: imageString),
+                               openLibraryManager.authorPhotoURLs[authorId] == nil {
+                                openLibraryManager.authorPhotoURLs[authorId] = url
+                            }
                             return
                         }
                     }
@@ -481,6 +520,12 @@ struct AuthorCard: View {
                         if biographyPreview == nil, let bio = wikidata?.biography ?? wikidata?.description, !bio.isEmpty {
                             biographyPreview = String(bio.prefix(100)) + (bio.count > 100 ? "..." : "")
                             print("✅ Wikidata bio loaded for: \(author.name)")
+                            
+                            if let imageString = wikidata?.imageURL,
+                               let url = URL(string: imageString),
+                               openLibraryManager.authorPhotoURLs[authorId] == nil {
+                                openLibraryManager.authorPhotoURLs[authorId] = url
+                            }
                         }
                         if biographyPreview == nil {
                             isLoadingBio = false
@@ -500,6 +545,34 @@ struct AuthorCard: View {
     func formatDate(_ dateString: String) -> String {
         return dateString
     }
+    
+    private var authorPhotoURL: URL? {
+        let authorId = openLibraryManager.extractAuthorId(from: author.key)
+        
+        if let cached = openLibraryManager.authorPhotoURLs[authorId] {
+            return cached
+        }
+        
+        if let wikidataMatch = wikidataManager.authorInfo.values.first(where: { info in
+            if info.name.caseInsensitiveCompare(author.name) == .orderedSame {
+                return true
+            }
+            if let alternates = author.alternateNames {
+                return alternates.contains {
+                    $0.caseInsensitiveCompare(info.name) == .orderedSame ||
+                    $0.localizedCaseInsensitiveContains(info.name) ||
+                    info.name.localizedCaseInsensitiveContains($0)
+                }
+            }
+            return false
+        }),
+        let imageString = wikidataMatch.imageURL,
+        let url = URL(string: imageString) {
+            return url
+        }
+        
+        return nil
+    }
 }
 
 // MARK: - Author Detail View
@@ -518,6 +591,60 @@ struct AuthorDetailView: View {
     @State private var showingAILessons = false
     @State private var aiLessons = ""
     @State private var isGeneratingLessons = false
+    
+    private var authorPhotoURL: URL? {
+        let authorId = openLibraryManager.extractAuthorId(from: author.key)
+        
+        if let cached = openLibraryManager.authorPhotoURLs[authorId] {
+            return cached
+        }
+        
+        if let photoId = authorDetail?.photos?.first ?? openLibraryManager.authorDetails[authorId]?.photos?.first {
+            let urlString = openLibraryManager.getAuthorPhotoURL(photoId: photoId)
+            return URL(string: urlString)
+        }
+        
+        if let wikidata = (wikidataInfo ?? wikidataManager.authorInfo.values.first(where: self.matchesAuthorName)),
+           let imageString = wikidata.imageURL {
+            return URL(string: imageString)
+        }
+        
+        return nil
+    }
+    
+    private var authorImageView: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemGray6))
+            
+            if let url = authorPhotoURL {
+                AsyncImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.25))) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.8)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.purple)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.purple)
+            }
+        }
+        .frame(width: 120, height: 160)
+    }
     
     var body: some View {
         NavigationView {
@@ -565,22 +692,7 @@ struct AuthorDetailView: View {
         VStack(spacing: 24) {
             // Author Header
             VStack(spacing: 16) {
-                // Author Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 160)
-                    
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.purple)
-                }
+                authorImageView
                 
                 // Name
                 Text(author.name)
@@ -676,21 +788,7 @@ struct AuthorDetailView: View {
         VStack(spacing: 24) {
             // Author Header (basic)
             VStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 160)
-                    
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.purple)
-                }
+                authorImageView
                 
                 Text(author.name)
                     .font(.title2)
@@ -826,22 +924,7 @@ struct AuthorDetailView: View {
         VStack(spacing: 24) {
             // Author Header
             VStack(spacing: 16) {
-                // Author Icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.3), Color.blue.opacity(0.3)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 120, height: 160)
-                    
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.purple)
-                }
+                authorImageView
                 
                 // Name - Use Wikidata name if available (usually more complete), otherwise Open Library
                 let displayName = wikidataInfo?.name ?? detail.name
@@ -1134,6 +1217,13 @@ struct AuthorDetailView: View {
                     // Always show Open Library data immediately (don't wait!)
                     self.isLoading = false
                     print("✅ Open Library INSTANT: \(detail.name) - Bio: \(detail.bio?.count ?? 0) chars")
+                    
+                    if let photoId = detail.photos?.first {
+                        let urlString = openLibraryManager.getAuthorPhotoURL(photoId: photoId)
+                        if let url = URL(string: urlString) {
+                            openLibraryManager.authorPhotoURLs[authorId] = url
+                        }
+                    }
                     // Notify that data has updated
                     NotificationCenter.default.post(name: NSNotification.Name("AuthorDataUpdated"), object: nil)
                 }
@@ -1185,6 +1275,12 @@ struct AuthorDetailView: View {
                     await MainActor.run {
                         self.wikidataInfo = wikidata
                         print("✅ Wikidata enhanced data: \(wikidata.name) - Bio: \(wikidata.biography?.count ?? 0) chars, Works: \(wikidata.works.count)")
+                        
+                        if openLibraryManager.authorPhotoURLs[authorId] == nil,
+                            let imageString = wikidata.imageURL,
+                            let url = URL(string: imageString) {
+                            openLibraryManager.authorPhotoURLs[authorId] = url
+                        }
                         // Notify that data has updated
                         NotificationCenter.default.post(name: NSNotification.Name("AuthorDataUpdated"), object: nil)
                     }
@@ -1385,6 +1481,22 @@ struct AuthorDetailView: View {
         }
         
         return summary
+    }
+    
+    private func matchesAuthorName(_ info: WikidataAuthorInfo) -> Bool {
+        if info.name.caseInsensitiveCompare(author.name) == .orderedSame {
+            return true
+        }
+        
+        if let alternates = author.alternateNames {
+            return alternates.contains { alt in
+                alt.caseInsensitiveCompare(info.name) == .orderedSame ||
+                alt.localizedCaseInsensitiveContains(info.name) ||
+                info.name.localizedCaseInsensitiveContains(alt)
+            }
+        }
+        
+        return false
     }
 }
 
