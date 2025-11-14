@@ -322,10 +322,6 @@ struct PodcastCard: View {
                         .lineLimit(1)
                     
                     HStack(spacing: 8) {
-                        Label("\(podcast.totalEpisodes)", systemImage: "play.circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
                         if podcast.explicitContent {
                             Text("E")
                                 .font(.caption)
@@ -543,9 +539,6 @@ struct PodcastDetailView: View {
                         .foregroundColor(.secondary)
                     
                     HStack(spacing: 16) {
-                        Label("\(podcast.totalEpisodes) Episodes", systemImage: "play.circle.fill")
-                            .font(.caption)
-                        
                         if podcast.explicitContent {
                             Text("EXPLICIT")
                                 .font(.caption)
@@ -628,7 +621,6 @@ struct PodcastDetailView: View {
                 
                 // Episodes info
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Total Episodes: \(podcast.totalEpisodes)", systemImage: "play.circle")
                     Label("Language: \(podcast.language)", systemImage: "globe")
                     Label("Country: \(podcast.country)", systemImage: "mappin.circle")
                 }
