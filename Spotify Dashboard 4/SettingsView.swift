@@ -148,7 +148,7 @@ struct SettingsView: View {
                 
                 // Privacy & Data
                 Section("Privacy & Data") {
-                    Link(destination: URL(string: "https://example.com/privacy")!) {
+                    Link(destination: URL(string: "https://github.com/ash1234-dj/Spotify-Dashboard#privacy-policy")!) {
                         HStack {
                             Text("Privacy Policy")
                             Spacer()
@@ -157,7 +157,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Link(destination: URL(string: "https://example.com/terms")!) {
+                    Link(destination: URL(string: "https://github.com/ash1234-dj/Spotify-Dashboard#terms-of-service")!) {
                         HStack {
                             Text("Terms of Service")
                             Spacer()

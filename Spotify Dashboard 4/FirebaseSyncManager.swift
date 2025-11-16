@@ -71,6 +71,11 @@ struct MoodDiaryEntry: Codable, Identifiable {
 // MARK: - Firebase Sync Manager
 
 class FirebaseSyncManager: ObservableObject {
+    enum StorageMode {
+        case local
+        case firestore
+    }
+    
     @Published var readingSessions: [ReadingSession] = []
     @Published var moodDiaryEntries: [MoodDiaryEntry] = []
     @Published var isSyncing = false
@@ -79,6 +84,11 @@ class FirebaseSyncManager: ObservableObject {
     
     private let db = Firestore.firestore()
     private let userId: String
+    private let storageMode: StorageMode = .local // Default to local-only while sign-in is disabled
+    
+    // UserDefaults keys
+    private let readingSessionsKey = "local_readingSessions"
+    private let moodDiaryKey = "local_moodDiaryEntries"
     
     init() {
         // For now, use a demo user ID
@@ -90,36 +100,51 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Save Reading Session
     
     func saveReadingSession(_ session: ReadingSession) async {
-        do {
-            isSyncing = true
-            
-            let sessionData: [String: Any] = [
-                "id": session.id,
-                "bookTitle": session.bookTitle,
-                "bookAuthor": session.bookAuthor,
-                "startTime": Timestamp(date: session.startTime),
-                "endTime": session.endTime != nil ? Timestamp(date: session.endTime!) : NSNull(),
-                "readingProgress": session.readingProgress,
-                "musicGenre": session.musicGenre ?? NSNull(),
-                "notes": session.notes ?? NSNull()
-            ]
-            
-            try await db.collection("users").document(userId)
-                .collection("readingSessions").document(session.id)
-                .setData(sessionData)
-            
-            await MainActor.run {
-                isSyncing = false
-                lastSyncDate = Date()
-                syncError = nil
-                print("✅ Saved reading session: \(session.bookTitle)")
+        isSyncing = true
+        switch storageMode {
+        case .local:
+            // Append to local array and persist
+            var all = await loadReadingSessionsLocal()
+            if let idx = all.firstIndex(where: { $0.id == session.id }) {
+                all[idx] = session
+            } else {
+                all.insert(session, at: 0)
             }
-            
-        } catch {
+            await saveReadingSessionsLocal(all)
             await MainActor.run {
-                isSyncing = false
-                syncError = "Failed to save session: \(error.localizedDescription)"
-                print("❌ Failed to save reading session: \(error)")
+                self.readingSessions = all
+                self.isSyncing = false
+                self.lastSyncDate = Date()
+                self.syncError = nil
+                print("✅ Saved reading session locally: \(session.bookTitle)")
+            }
+        case .firestore:
+            do {
+                let sessionData: [String: Any] = [
+                    "id": session.id,
+                    "bookTitle": session.bookTitle,
+                    "bookAuthor": session.bookAuthor,
+                    "startTime": Timestamp(date: session.startTime),
+                    "endTime": session.endTime != nil ? Timestamp(date: session.endTime!) : NSNull(),
+                    "readingProgress": session.readingProgress,
+                    "musicGenre": session.musicGenre ?? NSNull(),
+                    "notes": session.notes ?? NSNull()
+                ]
+                try await db.collection("users").document(userId)
+                    .collection("readingSessions").document(session.id)
+                    .setData(sessionData)
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.lastSyncDate = Date()
+                    self.syncError = nil
+                    print("✅ Saved reading session (Firestore): \(session.bookTitle)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.syncError = "Failed to save session: \(error.localizedDescription)"
+                    print("❌ Failed to save reading session: \(error)")
+                }
             }
         }
     }
@@ -127,36 +152,50 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Save Mood Diary Entry
     
     func saveMoodDiaryEntry(_ entry: MoodDiaryEntry) async {
-        do {
-            isSyncing = true
-            
-            let entryData: [String: Any] = [
-                "id": entry.id,
-                "date": Timestamp(date: entry.date),
-                "bookTitle": entry.bookTitle,
-                "moodScore": entry.moodScore,
-                "emotions": entry.emotions,
-                "notes": entry.notes,
-                "readingProgress": entry.readingProgress,
-                "musicGenre": entry.musicGenre ?? NSNull()
-            ]
-            
-            try await db.collection("users").document(userId)
-                .collection("moodDiary").document(entry.id)
-                .setData(entryData)
-            
-            await MainActor.run {
-                isSyncing = false
-                lastSyncDate = Date()
-                syncError = nil
-                print("✅ Saved mood diary entry")
+        isSyncing = true
+        switch storageMode {
+        case .local:
+            var all = await loadMoodDiaryLocal()
+            if let idx = all.firstIndex(where: { $0.id == entry.id }) {
+                all[idx] = entry
+            } else {
+                all.insert(entry, at: 0)
             }
-            
-        } catch {
+            await saveMoodDiaryLocal(all)
             await MainActor.run {
-                isSyncing = false
-                syncError = "Failed to save diary entry: \(error.localizedDescription)"
-                print("❌ Failed to save mood diary entry: \(error)")
+                self.moodDiaryEntries = all
+                self.isSyncing = false
+                self.lastSyncDate = Date()
+                self.syncError = nil
+                print("✅ Saved mood diary entry locally")
+            }
+        case .firestore:
+            do {
+                let entryData: [String: Any] = [
+                    "id": entry.id,
+                    "date": Timestamp(date: entry.date),
+                    "bookTitle": entry.bookTitle,
+                    "moodScore": entry.moodScore,
+                    "emotions": entry.emotions,
+                    "notes": entry.notes,
+                    "readingProgress": entry.readingProgress,
+                    "musicGenre": entry.musicGenre ?? NSNull()
+                ]
+                try await db.collection("users").document(userId)
+                    .collection("moodDiary").document(entry.id)
+                    .setData(entryData)
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.lastSyncDate = Date()
+                    self.syncError = nil
+                    print("✅ Saved mood diary entry (Firestore)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.syncError = "Failed to save diary entry: \(error.localizedDescription)"
+                    print("❌ Failed to save mood diary entry: \(error)")
+                }
             }
         }
     }
@@ -164,50 +203,56 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Load Reading Sessions
     
     func loadReadingSessions() async {
-        do {
-            isSyncing = true
-            
-            let snapshot = try await db.collection("users").document(userId)
-                .collection("readingSessions")
-                .order(by: "startTime", descending: true)
-                .limit(to: 50)
-                .getDocuments()
-            
-            let sessions = snapshot.documents.compactMap { doc -> ReadingSession? in
-                let data = doc.data()
-                guard let bookTitle = data["bookTitle"] as? String,
-                      let bookAuthor = data["bookAuthor"] as? String,
-                      let startTimestamp = data["startTime"] as? Timestamp else {
-                    return nil
-                }
-                
-                let endTimestamp = data["endTime"] as? Timestamp
-                let endTime = endTimestamp?.dateValue()
-                
-                return ReadingSession(
-                    id: data["id"] as? String ?? doc.documentID,
-                    bookTitle: bookTitle,
-                    bookAuthor: bookAuthor,
-                    startTime: startTimestamp.dateValue(),
-                    endTime: endTime,
-                    readingProgress: data["readingProgress"] as? Double ?? 0.0,
-                    musicGenre: data["musicGenre"] as? String,
-                    notes: data["notes"] as? String
-                )
-            }
-            
+        isSyncing = true
+        switch storageMode {
+        case .local:
+            let sessions = await loadReadingSessionsLocal()
             await MainActor.run {
                 self.readingSessions = sessions
                 self.isSyncing = false
                 self.lastSyncDate = Date()
-                print("✅ Loaded \(sessions.count) reading sessions")
+                print("✅ Loaded \(sessions.count) local reading sessions")
             }
-            
-        } catch {
-            await MainActor.run {
-                self.isSyncing = false
-                self.syncError = "Failed to load sessions: \(error.localizedDescription)"
-                print("❌ Failed to load reading sessions: \(error)")
+        case .firestore:
+            do {
+                let snapshot = try await db.collection("users").document(userId)
+                    .collection("readingSessions")
+                    .order(by: "startTime", descending: true)
+                    .limit(to: 50)
+                    .getDocuments()
+                
+                let sessions = snapshot.documents.compactMap { doc -> ReadingSession? in
+                    let data = doc.data()
+                    guard let bookTitle = data["bookTitle"] as? String,
+                          let bookAuthor = data["bookAuthor"] as? String,
+                          let startTimestamp = data["startTime"] as? Timestamp else {
+                        return nil
+                    }
+                    let endTimestamp = data["endTime"] as? Timestamp
+                    let endTime = endTimestamp?.dateValue()
+                    return ReadingSession(
+                        id: data["id"] as? String ?? doc.documentID,
+                        bookTitle: bookTitle,
+                        bookAuthor: bookAuthor,
+                        startTime: startTimestamp.dateValue(),
+                        endTime: endTime,
+                        readingProgress: data["readingProgress"] as? Double ?? 0.0,
+                        musicGenre: data["musicGenre"] as? String,
+                        notes: data["notes"] as? String
+                    )
+                }
+                await MainActor.run {
+                    self.readingSessions = sessions
+                    self.isSyncing = false
+                    self.lastSyncDate = Date()
+                    print("✅ Loaded \(sessions.count) reading sessions (Firestore)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.syncError = "Failed to load sessions: \(error.localizedDescription)"
+                    print("❌ Failed to load reading sessions: \(error)")
+                }
             }
         }
     }
@@ -215,49 +260,55 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Load Mood Diary Entries
     
     func loadMoodDiaryEntries() async {
-        do {
-            isSyncing = true
-            
-            let snapshot = try await db.collection("users").document(userId)
-                .collection("moodDiary")
-                .order(by: "date", descending: true)
-                .limit(to: 100)
-                .getDocuments()
-            
-            let entries = snapshot.documents.compactMap { doc -> MoodDiaryEntry? in
-                let data = doc.data()
-                guard let dateTimestamp = data["date"] as? Timestamp,
-                      let bookTitle = data["bookTitle"] as? String,
-                      let moodScore = data["moodScore"] as? Int,
-                      let emotions = data["emotions"] as? [String],
-                      let notes = data["notes"] as? String else {
-                    return nil
-                }
-                
-                return MoodDiaryEntry(
-                    id: data["id"] as? String ?? doc.documentID,
-                    date: dateTimestamp.dateValue(),
-                    bookTitle: bookTitle,
-                    moodScore: moodScore,
-                    emotions: emotions,
-                    notes: notes,
-                    readingProgress: data["readingProgress"] as? Double ?? 0.0,
-                    musicGenre: data["musicGenre"] as? String
-                )
-            }
-            
+        isSyncing = true
+        switch storageMode {
+        case .local:
+            let entries = await loadMoodDiaryLocal()
             await MainActor.run {
                 self.moodDiaryEntries = entries
                 self.isSyncing = false
                 self.lastSyncDate = Date()
-                print("✅ Loaded \(entries.count) mood diary entries")
+                print("✅ Loaded \(entries.count) local mood diary entries")
             }
-            
-        } catch {
-            await MainActor.run {
-                self.isSyncing = false
-                self.syncError = "Failed to load diary entries: \(error.localizedDescription)"
-                print("❌ Failed to load mood diary entries: \(error)")
+        case .firestore:
+            do {
+                let snapshot = try await db.collection("users").document(userId)
+                    .collection("moodDiary")
+                    .order(by: "date", descending: true)
+                    .limit(to: 100)
+                    .getDocuments()
+                let entries = snapshot.documents.compactMap { doc -> MoodDiaryEntry? in
+                    let data = doc.data()
+                    guard let dateTimestamp = data["date"] as? Timestamp,
+                          let bookTitle = data["bookTitle"] as? String,
+                          let moodScore = data["moodScore"] as? Int,
+                          let emotions = data["emotions"] as? [String],
+                          let notes = data["notes"] as? String else {
+                        return nil
+                    }
+                    return MoodDiaryEntry(
+                        id: data["id"] as? String ?? doc.documentID,
+                        date: dateTimestamp.dateValue(),
+                        bookTitle: bookTitle,
+                        moodScore: moodScore,
+                        emotions: emotions,
+                        notes: notes,
+                        readingProgress: data["readingProgress"] as? Double ?? 0.0,
+                        musicGenre: data["musicGenre"] as? String
+                    )
+                }
+                await MainActor.run {
+                    self.moodDiaryEntries = entries
+                    self.isSyncing = false
+                    self.lastSyncDate = Date()
+                    print("✅ Loaded \(entries.count) mood diary entries (Firestore)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSyncing = false
+                    self.syncError = "Failed to load diary entries: \(error.localizedDescription)"
+                    print("❌ Failed to load mood diary entries: \(error)")
+                }
             }
         }
     }
@@ -274,20 +325,29 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Delete Reading Session
     
     func deleteReadingSession(_ session: ReadingSession) async {
-        do {
-            try await db.collection("users").document(userId)
-                .collection("readingSessions").document(session.id)
-                .delete()
-            
+        switch storageMode {
+        case .local:
+            var all = await loadReadingSessionsLocal()
+            all.removeAll { $0.id == session.id }
+            await saveReadingSessionsLocal(all)
             await MainActor.run {
-                readingSessions.removeAll { $0.id == session.id }
-                print("✅ Deleted reading session")
+                self.readingSessions = all
+                print("✅ Deleted local reading session")
             }
-            
-        } catch {
-            await MainActor.run {
-                syncError = "Failed to delete session: \(error.localizedDescription)"
-                print("❌ Failed to delete reading session: \(error)")
+        case .firestore:
+            do {
+                try await db.collection("users").document(userId)
+                    .collection("readingSessions").document(session.id)
+                    .delete()
+                await MainActor.run {
+                    self.readingSessions.removeAll { $0.id == session.id }
+                    print("✅ Deleted reading session (Firestore)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.syncError = "Failed to delete session: \(error.localizedDescription)"
+                    print("❌ Failed to delete reading session: \(error)")
+                }
             }
         }
     }
@@ -295,21 +355,69 @@ class FirebaseSyncManager: ObservableObject {
     // MARK: - Delete Mood Diary Entry
     
     func deleteMoodDiaryEntry(_ entry: MoodDiaryEntry) async {
+        switch storageMode {
+        case .local:
+            var all = await loadMoodDiaryLocal()
+            all.removeAll { $0.id == entry.id }
+            await saveMoodDiaryLocal(all)
+            await MainActor.run {
+                self.moodDiaryEntries = all
+                print("✅ Deleted local mood diary entry")
+            }
+        case .firestore:
+            do {
+                try await db.collection("users").document(userId)
+                    .collection("moodDiary").document(entry.id)
+                    .delete()
+                await MainActor.run {
+                    self.moodDiaryEntries.removeAll { $0.id == entry.id }
+                    print("✅ Deleted mood diary entry (Firestore)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.syncError = "Failed to delete entry: \(error.localizedDescription)"
+                    print("❌ Failed to delete mood diary entry: \(error)")
+                }
+            }
+        }
+    }
+
+    // MARK: - Local storage helpers
+    private func saveReadingSessionsLocal(_ sessions: [ReadingSession]) async {
         do {
-            try await db.collection("users").document(userId)
-                .collection("moodDiary").document(entry.id)
-                .delete()
-            
-            await MainActor.run {
-                moodDiaryEntries.removeAll { $0.id == entry.id }
-                print("✅ Deleted mood diary entry")
-            }
-            
+            let data = try JSONEncoder().encode(sessions)
+            UserDefaults.standard.set(data, forKey: readingSessionsKey)
         } catch {
-            await MainActor.run {
-                syncError = "Failed to delete entry: \(error.localizedDescription)"
-                print("❌ Failed to delete mood diary entry: \(error)")
-            }
+            print("⚠️ Failed to save local reading sessions: \(error)")
+        }
+    }
+    
+    private func loadReadingSessionsLocal() async -> [ReadingSession] {
+        guard let data = UserDefaults.standard.data(forKey: readingSessionsKey) else { return [] }
+        do {
+            return try JSONDecoder().decode([ReadingSession].self, from: data)
+        } catch {
+            print("⚠️ Failed to load local reading sessions: \(error)")
+            return []
+        }
+    }
+    
+    private func saveMoodDiaryLocal(_ entries: [MoodDiaryEntry]) async {
+        do {
+            let data = try JSONEncoder().encode(entries)
+            UserDefaults.standard.set(data, forKey: moodDiaryKey)
+        } catch {
+            print("⚠️ Failed to save local mood diary entries: \(error)")
+        }
+    }
+    
+    private func loadMoodDiaryLocal() async -> [MoodDiaryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: moodDiaryKey) else { return [] }
+        do {
+            return try JSONDecoder().decode([MoodDiaryEntry].self, from: data)
+        } catch {
+            print("⚠️ Failed to load local mood diary entries: \(error)")
+            return []
         }
     }
 }
