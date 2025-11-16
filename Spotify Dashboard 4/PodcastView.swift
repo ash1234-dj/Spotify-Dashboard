@@ -253,6 +253,7 @@ struct PodcastView: View {
                                 selectedPodcast = podcast
                             }
                         )
+                        .environmentObject(audioPlayer)
                     }
                 }
                 .padding()
@@ -275,6 +276,23 @@ struct PodcastView: View {
 struct PodcastCard: View {
     let podcast: Podcast
     let onTap: () -> Void
+    @EnvironmentObject var audioPlayer: AudioPlayerManager
+    
+    // Small circular progress ring
+    @ViewBuilder
+    private func progressCircle(progress: Double) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.25), lineWidth: 3)
+                .frame(width: 20, height: 20)
+            Circle()
+                .trim(from: 0, to: CGFloat(min(max(progress, 0), 1)))
+                .stroke(Color.purple, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 20, height: 20)
+        }
+        .accessibilityLabel("Podcast progress \(Int(progress * 100)) percent")
+    }
     
     var body: some View {
         Button(action: onTap) {
@@ -319,6 +337,38 @@ struct PodcastCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                     
+                    // Resume info if available (clean, subtle)
+                    if let resume = audioPlayer.getResumeInfo(for: podcast.id),
+                       resume.time > 3 {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.circle.fill")
+                                    .foregroundColor(.purple)
+                                    .font(.caption)
+                                Text("Resume • \(formatTime(resume.time))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            
+                            // Slim progress bar (optional, subtle)
+                            if resume.duration > 0 {
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Capsule()
+                                            .fill(Color.gray.opacity(0.25))
+                                        Capsule()
+                                            .fill(Color.purple.opacity(0.9))
+                                            .frame(width: geo.size.width * CGFloat(resume.time / resume.duration))
+                                    }
+                                }
+                                .frame(height: 3)
+                                .opacity(0.9)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
+                    
                     HStack(spacing: 8) {
                         if podcast.explicitContent {
                             Text("E")
@@ -335,6 +385,15 @@ struct PodcastCard: View {
                 
                 Spacer()
                 
+                // Show small progress circle only when there is listening progress
+                if let resume = audioPlayer.getResumeInfo(for: podcast.id),
+                   resume.duration > 0 {
+                    let progress = max(0.0, min(resume.time / resume.duration, 1.0))
+                    if progress > 0.01 {
+                        progressCircle(progress: progress)
+                    }
+                }
+                
                 Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
             }
@@ -344,6 +403,12 @@ struct PodcastCard: View {
             .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let minutes = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", minutes, secs)
     }
 }
 
@@ -694,7 +759,7 @@ struct PodcastDetailView: View {
                             .padding(.horizontal)
                         
                         ForEach(podcastManager.episodes.prefix(3)) { episode in
-                            EpisodeCard(episode: episode, audioPlayer: audioPlayer)
+                            EpisodeCard(episode: episode, audioPlayer: audioPlayer, podcastId: podcast.id, podcastTitle: podcast.title)
                         }
                     }
                 }
@@ -751,12 +816,34 @@ struct PodcastDetailView: View {
 struct EpisodeCard: View {
     let episode: PodcastEpisode
     @ObservedObject var audioPlayer: AudioPlayerManager
+    var podcastId: String? = nil
+    var podcastTitle: String? = nil
     
     var body: some View {
         HStack(spacing: 12) {
             // Play button
             Button(action: {
-                audioPlayer.playEpisode(episode)
+                if let pid = podcastId, let ptitle = podcastTitle {
+                    // Minimal stand-in Podcast to pass context
+                    let pod = Podcast(
+                        id: pid,
+                        title: ptitle,
+                        description: "",
+                        publisher: "",
+                        image: nil,
+                        thumbnail: nil,
+                        totalEpisodes: 0,
+                        explicitContent: false,
+                        language: "",
+                        country: "",
+                        website: nil,
+                        isClaimed: false,
+                        email: nil
+                    )
+                    audioPlayer.playEpisode(episode, inPodcast: pod)
+                } else {
+                    audioPlayer.playEpisode(episode)
+                }
             }) {
                 Image(systemName: audioPlayer.currentEpisode?.id == episode.id && audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.title)
@@ -864,7 +951,7 @@ struct EpisodesSheetView: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(podcastManager.episodes) { episode in
-                                EpisodeCard(episode: episode, audioPlayer: audioPlayer)
+                                EpisodeCard(episode: episode, audioPlayer: audioPlayer, podcastId: podcast.id, podcastTitle: podcast.title)
                             }
                         }
                         .padding(.vertical)

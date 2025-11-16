@@ -22,7 +22,6 @@ struct SettingsView: View {
 
     @State private var showingResetAlert = false
     
-    @State private var showingSignIn = false
     @State private var showingSignOutAlert = false
     
     var selectedGenres: [String] {
@@ -88,10 +87,7 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            Button("Sign In") {
-                                showingSignIn = true
-                            }
-                            .buttonStyle(.borderedProminent)
+                            // Sign-in temporarily disabled
                         }
                     }
                     
@@ -231,11 +227,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This will delete all your data and reset the app to initial state.")
-            }
-            
-            .sheet(isPresented: $showingSignIn) {
-                SignInView()
-                    .environmentObject(authManager)
             }
             .alert("Sign Out", isPresented: $showingSignOutAlert) {
                 Button("Cancel", role: .cancel) { }
